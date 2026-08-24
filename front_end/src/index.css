@@ -2,11 +2,12 @@
 @import "tailwindcss";
 
 @theme {
-  --color-cream: #fcf8ed;
-  --color-coral: #ff8b95;
-  --color-yellow: #ffe35a;
-  --color-rose: #e5c6d9;
-  --color-ink: #000000;
+  --color-cream: #fffdf6;        /* page base, cleaner than before */
+  --color-butter: #fff3bf;       /* soft yellow surface */
+  --color-yellow: #ffd84d;       /* brand yellow — fills and accents */
+  --color-coral: #ff8b95;        /* secondary accent, used sparingly */
+  --color-ink: #2b2118;          /* warm near-black for text */
+  --color-ink-soft: #6f6355;     /* muted text — a real colour, not an opacity */
 
   --font-display: 'Bodoni Moda', serif;
   --font-body: 'Jost', sans-serif;

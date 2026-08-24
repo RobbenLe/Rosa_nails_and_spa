@@ -1,32 +1,87 @@
-from fastapi import FastAPI
+import os
+import time
 
-app = FastAPI()
+import httpx
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
-services = [
-    {"name": "Manicure", "price": 25},
-    {"name": "Pedicure", "price": 35},
-    {"name": "Gel Polish", "price": 30},
-]
+load_dotenv()
 
-days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-open_days = []
-for day in days:
-    open_days.append({"day": day, "from": "10:00", "to": "18:00"})
+API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
+PLACE_ID = os.getenv("GOOGLE_PLACE_ID")
 
-salon_info = {
-    "name": "Rosa Nails & Spa",
-    "phone": "0633426798",
-    "open_days" : open_days,
-}
+CACHE_TTL_SECONDS = 60 * 60 * 24  # refresh once a day
 
-@app.get("/")
-def hello_world():
-    return {"message":"Hello World", "status":200}
+app = FastAPI(title="Rosa Nails & Spa API")
 
-@app.get("/services")
-def list_services():
-    return services
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
-@app.get("/salon")
-def get_salon():
-    return salon_info
+_cache: dict = {"payload": None, "fetched_at": 0.0}
+
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/api/reviews")
+async def get_reviews():
+    now = time.time()
+
+    cached = _cache["payload"]
+    if cached is not None and now - _cache["fetched_at"] < CACHE_TTL_SECONDS:
+        return cached
+
+    if not API_KEY or not PLACE_ID:
+        raise HTTPException(
+            status_code=500,
+            detail="Google Places credentials are not configured",
+        )
+
+    url = f"https://places.googleapis.com/v1/places/{PLACE_ID}"
+    headers = {
+        "X-Goog-Api-Key": API_KEY,
+        "X-Goog-FieldMask": "rating,userRatingCount,reviews",
+    }
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        response = await client.get(url, headers=headers)
+
+    if response.status_code != 200:
+        if cached is not None:
+            return cached
+        raise HTTPException(
+            status_code=502,
+            detail=f"Google Places error {response.status_code}: {response.text[:300]}",
+        )
+
+    data = response.json()
+
+    payload = {
+        "summary": {
+            "rating": data.get("rating", 0),
+            "total": data.get("userRatingCount", 0),
+        },
+        "reviews": [
+            {
+                "id": review.get("name", f"review-{index}"),
+                "author": review.get("authorAttribution", {}).get(
+                    "displayName", "Anonymous"
+                ),
+                "rating": review.get("rating", 5),
+                "text": review.get("text", {}).get("text", ""),
+                "relativeTime": review.get("relativePublishTimeDescription", ""),
+            }
+            for index, review in enumerate(data.get("reviews", []))
+        ],
+    }
+
+    _cache["payload"] = payload
+    _cache["fetched_at"] = now
+    return payload
