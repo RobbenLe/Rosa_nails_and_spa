@@ -1,13 +1,12 @@
-"""Load the salon's services into the database. Safe to re-run.
+"""Load the salon's starting services into an empty database. Safe to re-run.
 
 This is only the starting data — after that, prices and services are
-managed on the website's /admin page.
+managed on the website's /admin page. It runs on every backend start, so it
+only adds data when there is none: services the admin deletes stay deleted.
 """
 
 from database import SessionLocal, create_tables
 from models import Service, Technician
-
-create_tables()
 
 TECHNICIANS = [
     ("Rosa", 1),
@@ -114,17 +113,15 @@ DESCRIPTIONS = {
 def seed():
     db = SessionLocal()
     try:
-        for name, order in TECHNICIANS:
-            if db.query(Technician).filter(Technician.name == name).first():
-                continue
-            db.add(Technician(name=name, display_order=order, is_active=True))
+        if db.query(Technician).first() is None:
+            for name, order in TECHNICIANS:
+                db.add(Technician(name=name, display_order=order, is_active=True))
 
-        for category, name, variant, duration_minutes, price, is_bookable in SERVICES:
-            if db.query(Service).filter(Service.name == name, Service.variant == variant).first():
-                continue
-            description, suitable = DESCRIPTIONS.get(name, ("", ""))
-            db.add(Service(category=category, name=name, variant=variant, description=description, suitable=suitable,
-                           duration_minutes=duration_minutes, price=price, is_bookable=is_bookable, is_active=True))
+        if db.query(Service).first() is None:
+            for category, name, variant, duration_minutes, price, is_bookable in SERVICES:
+                description, suitable = DESCRIPTIONS.get(name, ("", ""))
+                db.add(Service(category=category, name=name, variant=variant, description=description, suitable=suitable,
+                               duration_minutes=duration_minutes, price=price, is_bookable=is_bookable, is_active=True))
 
         db.commit()
         print(f"Seeded. Total services {db.query(Service).count()}")
@@ -132,4 +129,5 @@ def seed():
         db.close()
 
 if __name__ == "__main__":
+    create_tables()
     seed()

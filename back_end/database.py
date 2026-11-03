@@ -1,10 +1,27 @@
 #This  file is created to CONNECT TP THE DATABASE
 
+import os
+
+from dotenv import load_dotenv
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = "sqlite:///database.db"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+load_dotenv()
+
+# Online (Vercel) this is the Postgres URL from the Neon integration.
+# On your own computer it is unset, so a local SQLite file is used.
+DATABASE_URL = os.getenv("DATABASE_URL") or "sqlite:///database.db"
+
+# Neon gives "postgres://" or "postgresql://"; tell SQLAlchemy to use the psycopg 3 driver.
+for prefix in ("postgres://", "postgresql://"):
+    if DATABASE_URL.startswith(prefix):
+        DATABASE_URL = "postgresql+psycopg://" + DATABASE_URL.removeprefix(prefix)
+
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    # pool_pre_ping: serverless functions sleep between requests, so check the connection is still alive.
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_size=1, max_overflow=2)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 

@@ -7,22 +7,32 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import models
 from database import create_tables
+from seed import seed
 from services_api import router as services_router
 
-create_tables()
-
 load_dotenv()
+
+create_tables()
+seed()  # fills an empty database (e.g. the first deploy); does nothing once services exist
 
 API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 PLACE_ID = os.getenv("GOOGLE_PLACE_ID")
 
 CACHE_TTL_SECONDS = 60 * 60 * 24  # refresh once a day
 
+# Websites allowed to call this API, comma separated. Online, set FRONTEND_ORIGINS
+# to the website's address, e.g. "https://rosa-nails.vercel.app".
+FRONTEND_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("FRONTEND_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
+
 app = FastAPI(title="Rosa Nails & Spa API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=FRONTEND_ORIGINS,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
