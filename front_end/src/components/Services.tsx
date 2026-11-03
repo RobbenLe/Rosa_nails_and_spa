@@ -15,7 +15,7 @@ export default function Services({ services }: ServicesProps) {
     return (
         <section id="services" className="border-t border-ink/10 bg-cream px-6 py-16 md:py-20">
             <div className="mx-auto max-w-4xl">
-                <p className="font-body text-center text-xs uppercase tracking-[0.35em] text-coral">
+                <p className="font-body text-center text-xs uppercase tracking-[0.35em] text-coral-deep">
                     Price list
                 </p>
 
@@ -55,7 +55,7 @@ export default function Services({ services }: ServicesProps) {
                             <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
                                 <h3 className="font-display text-xl">{service.name}</h3>
 
-                                <div className="font-body flex gap-5 text-base font-medium text-coral">
+                                <div className="font-body flex gap-5 text-base font-medium text-coral-deep">
                                     {service.prices.map((option) => (
                                         <span key={option.label ?? "only"}>
                                             {option.label ? (

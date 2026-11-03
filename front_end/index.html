@@ -4,7 +4,49 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>front_end</title>
+    <meta name="theme-color" content="#fffdf6" />
+
+    <title>Rosa Nails &amp; Spa · Nail salon in Amsterdam West</title>
+    <meta
+      name="description"
+      content="Family-run nail salon in Amsterdam West. Manicures, pedicures, gel, BIAB, acrylic and nail art. Open Monday to Saturday, 10:00–18:00. Call to book."
+    />
+
+    <!-- How the site looks when shared on WhatsApp, Instagram, Facebook… -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Rosa Nails &amp; Spa · Amsterdam" />
+    <meta
+      property="og:description"
+      content="Manicures, pedicures, gel, BIAB, acrylic and nail art in Amsterdam West."
+    />
+    <meta property="og:image" content="/gallery/set-05.jpeg" />
+
+    <!-- Business details for Google search and Maps -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "NailSalon",
+        "name": "Rosa Nails & Spa",
+        "telephone": "+31633426798",
+        "image": "/gallery/set-05.jpeg",
+        "priceRange": "€€",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Hofwickstraat 2",
+          "postalCode": "1055 GE",
+          "addressLocality": "Amsterdam",
+          "addressCountry": "NL"
+        },
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+            "opens": "10:00",
+            "closes": "18:00"
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

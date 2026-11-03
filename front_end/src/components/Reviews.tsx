@@ -46,7 +46,7 @@ export default function Reviews({ reviews, summary }: ReviewsProps) {
     return (
         <section id="reviews" className="border-t border-ink/10 bg-cream py-16 md:py-20">
             <div className="mx-auto max-w-5xl px-6 text-center">
-                <p className="font-body text-xs uppercase tracking-[0.35em] text-coral">
+                <p className="font-body text-xs uppercase tracking-[0.35em] text-coral-deep">
                     Reviews
                 </p>
 
@@ -110,5 +110,5 @@ export default function Reviews({ reviews, summary }: ReviewsProps) {
                 </a>
             </p>
         </section>
-    );4
+    );
 }

@@ -8,7 +8,7 @@ export default function About({ paragraphs }: AboutProps) {
     return (
         <section id="about" className="border-t border-ink/10 bg-butter px-6 py-20 md:py-28">
             <div className="mx-auto max-w-2xl text-center">
-                <p className="font-body text-xs uppercase tracking-[0.35em] text-ink/60">
+                <p className="font-body text-xs uppercase tracking-[0.35em] text-ink-soft">
                     About us
                 </p>
 
@@ -19,13 +19,13 @@ export default function About({ paragraphs }: AboutProps) {
                 {paragraphs.map((paragraph, index) => (
                     <p
                         key={index}
-                        className="font-body mt-6 text-base leading-relaxed text-ink/75 md:text-lg"
+                        className="font-body mt-6 text-base leading-relaxed text-ink-soft md:text-lg"
                     >
                         {paragraph}
                     </p>
                 ))}
 
-                <p className="font-body mt-12 text-xs uppercase tracking-[0.25em] text-ink/50">
+                <p className="font-body mt-12 text-xs uppercase tracking-[0.25em] text-ink-soft">
                     What we do
                 </p>
 
