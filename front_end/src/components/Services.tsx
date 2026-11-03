@@ -5,6 +5,11 @@ interface ServicesProps {
     services: Service[];
 }
 
+// 50 → "50", 12.5 → "12.50"
+function formatEuro(amount: number): string {
+    return Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+}
+
 export default function Services({ services }: ServicesProps) {
     const [activeCategory, setActiveCategory] = useState<Category>(CATEGORIES[0]);
 
@@ -56,29 +61,36 @@ export default function Services({ services }: ServicesProps) {
                                 <h3 className="font-display text-xl">{service.name}</h3>
 
                                 <div className="font-body flex gap-5 text-base font-medium text-coral-deep">
-                                    {service.prices.map((option) => (
-                                        <span key={option.label ?? "only"}>
+                                    {service.prices.map((option, index) => (
+                                        <span key={index}>
                                             {option.label ? (
                                                 <span className="text-ink-soft font-normal">
                                                     {option.label}{" "}
                                                 </span>
                                             ) : null}
-                                            &euro;{option.price}
+                                            &euro;{formatEuro(option.price)}
                                         </span>
                                     ))}
                                 </div>
                             </div>
 
-                            <p className="font-body mt-2 max-w-xl text-sm text-ink">
-                                {service.description}
-                            </p>
+                            {service.description ? (
+                                <p className="font-body mt-2 max-w-xl text-sm text-ink">
+                                    {service.description}
+                                </p>
+                            ) : null}
 
-                            <p className="font-body mt-1 max-w-xl text-sm italic text-ink-soft">
-                                {service.suitable}
-                            </p>
+                            {service.suitable ? (
+                                <p className="font-body mt-1 max-w-xl text-sm italic text-ink-soft">
+                                    {service.suitable}
+                                </p>
+                            ) : null}
 
                             <p className="font-body mt-3 inline-block rounded-full bg-butter px-3 py-1 text-xs uppercase tracking-[0.15em] text-ink-soft">
-                                {service.durationMinutes} min
+                                {service.durationMaxMinutes && service.durationMaxMinutes !== service.durationMinutes
+                                    ? `${service.durationMinutes}–${service.durationMaxMinutes}`
+                                    : service.durationMinutes}{" "}
+                                min
                             </p>
                         </li>
                     ))}

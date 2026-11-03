@@ -6,9 +6,10 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import models
-from database import Base, engine
+from database import create_tables
+from services_api import router as services_router
 
-Base.metadata.create_all(bind=engine)
+create_tables()
 
 load_dotenv()
 
@@ -22,9 +23,11 @@ app = FastAPI(title="Rosa Nails & Spa API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+
+app.include_router(services_router)
 
 _cache: dict = {"payload": None, "fetched_at": 0.0}
 

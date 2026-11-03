@@ -11,9 +11,9 @@ import SalonMap from "./components/SalonMap";
 import MobileActionBar from "./components/MobileActionBar";
 import Footer from "./components/Footer";
 
-import { fetchReviews, type ReviewsResponse } from "./api";
+import { fetchReviews, fetchServices, type ReviewsResponse } from "./api";
 import { salon } from "./data/salon";
-import { services } from "./data/services";
+import { groupServiceRows, services as fallbackServices } from "./data/services";
 import { gallery } from "./data/gallery";
 import { openStatus } from "./lib/hours";
 
@@ -22,6 +22,7 @@ const HERO_PHOTO_IDS = ["set-05", "set-08"];
 
 function App() {
     const [reviewData, setReviewData] = useState<ReviewsResponse | null>(null);
+    const [services, setServices] = useState(fallbackServices);
 
     useEffect(() => {
         let cancelled = false;
@@ -32,6 +33,14 @@ function App() {
             })
             .catch((error) => {
                 console.error("Could not load reviews:", error);
+            });
+
+        fetchServices()
+            .then((rows) => {
+                if (!cancelled) setServices(groupServiceRows(rows));
+            })
+            .catch((error) => {
+                console.error("Could not load services, showing the built-in list:", error);
             });
 
         return () => {

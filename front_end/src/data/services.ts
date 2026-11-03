@@ -1,3 +1,5 @@
+import type { ServiceRow } from "../api";
+
 export const CATEGORIES = [
     "Manicure & Pedicure",
     "Acrylic & Extensions",
@@ -19,9 +21,53 @@ export interface Service {
     description: string;
     suitable: string;
     durationMinutes: number;
+    durationMaxMinutes?: number; // set when options take different times, e.g. new set vs filling
     prices: PriceOption[];
 }
 
+/**
+ * The database stores one row per option ("Natural – new set", "Natural – filling").
+ * The price list shows them as one service with several prices, so group rows
+ * that share a category and name.
+ */
+export function groupServiceRows(rows: ServiceRow[]): Service[] {
+    const groups = new Map<string, Service>();
+
+    for (const row of rows) {
+        const key = `${row.category}|${row.name}`;
+        const price: PriceOption = {
+            label: row.variant || undefined,
+            price: row.price_cents / 100,
+        };
+        const existing = groups.get(key);
+
+        if (existing) {
+            existing.prices.push(price);
+            existing.durationMinutes = Math.min(existing.durationMinutes, row.duration_minutes);
+            existing.durationMaxMinutes = Math.max(
+                existing.durationMaxMinutes ?? row.duration_minutes,
+                row.duration_minutes
+            );
+            continue;
+        }
+
+        groups.set(key, {
+            id: String(row.id),
+            name: row.name,
+            category: row.category as Category,
+            description: row.description,
+            suitable: row.suitable,
+            durationMinutes: row.duration_minutes,
+            durationMaxMinutes: row.duration_minutes,
+            prices: [price],
+        });
+    }
+
+    return [...groups.values()];
+}
+
+// Shown until the live price list arrives from the server, and if the server
+// can't be reached. The real prices are managed on the /admin page.
 export const services: Service[] = [
     // ---------- Manicure & Pedicure ----------
     {

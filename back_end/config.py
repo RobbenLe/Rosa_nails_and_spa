@@ -29,3 +29,12 @@ MIN_CANCLE_NOTICE_HOURS = 12
 
 #Statuses that actually occupy a slot
 ACTIVE_STATUSES = ("confirmed", "rescheduled")
+
+#Price list categories, in the order the website shows them.
+#Keep in sync with CATEGORIES in front_end/src/data/services.ts
+SERVICE_CATEGORIES = (
+    "Manicure & Pedicure",
+    "Acrylic & Extensions",
+    "BIAB & Gel",
+    "Extras",
+)

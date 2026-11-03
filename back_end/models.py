@@ -15,14 +15,18 @@ class Service(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(120), nullable=False)
+    # Optional option label, e.g. "new set" / "filling". Rows with the same
+    # category + name are shown together as one service on the website.
+    variant = Column(String(60), nullable=False, default='', server_default='')
     category = Column(String(60), nullable=False, default='')
     description = Column(Text, default='')
+    suitable = Column(Text, default='')  # "Perfect for clients who..."
     duration_minutes = Column(Integer, nullable=False)
-    price = Column(Integer, nullable=False)
-    is_active = Column(Boolean, nullable=False, default=True)
+    price = Column(Integer, nullable=False)  # in cents
+    is_active = Column(Boolean, nullable=False, default=True)  # shown on the website
     is_bookable = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, nullable = False, default=utcnow)
-    updated_at = Column(DateTime, nullable = False, default=utcnow)
+    updated_at = Column(DateTime, nullable = False, default=utcnow, onupdate=utcnow)
     appointments= relationship("Appointment", back_populates="service")
 
 class Appointment(Base):
