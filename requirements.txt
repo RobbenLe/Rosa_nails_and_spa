@@ -1,2 +1,8 @@
-# Python packages for the Vercel API function (api/index.py).
--r back_end/requirements.txt
+# Python packages for the backend (back_end/) — also used by Vercel for api/index.py.
+fastapi
+uvicorn[standard]
+httpx
+python-dotenv
+sqlalchemy
+tzdata
+psycopg[binary]

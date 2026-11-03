@@ -1,7 +1,2 @@
-fastapi
-uvicorn[standard]
-httpx
-python-dotenv
-sqlalchemy
-tzdata
-psycopg[binary]
+# The package list lives in the repo root so Vercel can read it.
+-r ../requirements.txt
