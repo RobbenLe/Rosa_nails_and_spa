@@ -35,7 +35,7 @@ export default function Navbar({ salonName, phone }: NavbarProps) {
                 </ul>
 
 
-                    <a href={telHref} className="hidden rounded-full bg-coral px-6 py-2.5 font-body text-sm uppercase tracking-[0.15em] transition hover:opacity-80 md:block">
+                    <a href={telHref} className="hidden rounded-full bg-coral px-6 py-2.5 font-body text-sm uppercase tracking-[0.15em] transition hover:opacity-80 lg:block">
                     Call to book
                 </a>
 
@@ -66,7 +66,7 @@ export default function Navbar({ salonName, phone }: NavbarProps) {
                     <li>
 
                             <a href={telHref}
-                            className="mt-2 block rounded-full bg-coral px-5 py-3 text-center font-body text-xs uppercase tracking-[0.15em]"
+                            className="mt-2 block rounded-full border border-ink/30 px-5 py-3 text-center font-body text-xs uppercase tracking-[0.15em]"
                         >
                             Call to book
                         </a>

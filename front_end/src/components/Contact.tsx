@@ -46,7 +46,7 @@ export default function Contact({ salon }: ContactProps) {
                         <div className="mt-8 flex flex-wrap gap-4">
                             <a
                                 href={telHref}
-                                className="rounded-full bg-coral px-7 py-3 font-body text-sm uppercase tracking-[0.15em] transition hover:opacity-80"
+                                className="rounded-full border border-ink/30 px-7 py-3 font-body text-sm uppercase tracking-[0.15em] transition hover:border-ink/60"
                             >
                                 Call {salon.phone}
                             </a>

@@ -111,3 +111,51 @@ export const adminApi = {
             method: "DELETE",
         }),
 };
+
+// ---------------------------------------------------------- chatbot
+
+export interface ChatMessage {
+    role: "user" | "assistant";
+    content: string;
+}
+
+export interface ChatBooking {
+    service: string;
+    when: string;
+    name: string;
+}
+
+export interface ChatReply {
+    reply: string;
+    whatsapp: boolean;          // show the "Book via WhatsApp" button under this reply
+    booking: ChatBooking | null; // set when the customer has given service, time and name
+    button: "ask" | "book";      // "Ask on WhatsApp" (a question for Rosa) or "Book via WhatsApp" (an appointment request)
+    language: "en" | "nl";       // language of the reply, so the button label matches it
+}
+
+/** Asks the server whether the chatbot is switched on. Any problem counts as "off". */
+export async function fetchChatEnabled(): Promise<boolean> {
+    try {
+        const response = await fetch(`${API_BASE}/api/chat/status`);
+        if (!response.ok) return false;
+        const body = await response.json();
+        return body.enabled === true;
+    } catch {
+        return false;
+    }
+}
+
+export class ChatTooManyMessagesError extends Error {}
+
+export async function sendChat(messages: ChatMessage[]): Promise<ChatReply> {
+    const response = await fetch(`${API_BASE}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }),
+    });
+
+    if (response.status === 429) throw new ChatTooManyMessagesError("Too many messages");
+    if (!response.ok) throw new Error(`Chat request failed with ${response.status}`);
+
+    return response.json();
+}

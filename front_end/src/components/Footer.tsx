@@ -9,7 +9,7 @@ export default function Footer({ salon }: FooterProps) {
 
     return (
         // Extra bottom padding on phones so the fixed action bar never covers the footer.
-        <footer className="border-t border-ink/10 bg-butter px-6 pt-14 pb-28 md:pb-14">
+        <footer className="border-t border-ink/10 bg-butter px-6 pt-14 pb-28 lg:pb-24">
             <div className="mx-auto grid max-w-5xl gap-10 text-center md:grid-cols-3 md:text-left">
                 <div>
                     <p className="font-display italic text-2xl">{salon.name}</p>

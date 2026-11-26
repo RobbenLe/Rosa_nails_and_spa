@@ -151,9 +151,28 @@ Environment Variables**. After changing one in Vercel, click **Redeploy**.
 | `GOOGLE_PLACE_ID` | Which business's reviews to fetch | optional | ✅ |
 | `DATABASE_URL` | Which database to use. Empty = local SQLite file. | leave empty | ✅ added by Neon automatically |
 | `FRONTEND_ORIGINS` | Websites allowed to call the API from another address | default is fine | not needed (same address) |
+| `CHATBOT_ENABLED` | Kill switch of the chat widget. Only the exact value `true` turns it on. | `true` to try it | ✅ set to `false` and Redeploy to switch the chat off |
+| `ANTHROPIC_API_KEY` | The AI service behind the chat. Set a monthly spend limit (€20) in the Anthropic console. | optional | ✅ |
+| `CHATBOT_DATABASE_URL` | Read-only database user for the chat (can only `SELECT` from `services`). Locally: `sqlite:///database.db` | optional | ✅ |
 | `VITE_API_BASE_URL` | (front end) Where the API lives. Default: `localhost:8000` in dev, same site online. | not needed | not needed |
 
 The template with all names is [back_end/.env.example](back_end/.env.example).
+
+### The chat assistant
+
+A chat window on the website answers questions about prices, services, opening
+hours, address and a short FAQ in English or Dutch. It cannot book: it collects
+service, time and name and shows a **Book via WhatsApp** button with a
+ready-written message. Questions about allergies, skin, pregnancy or medication
+always get a fixed "ask Rosa on WhatsApp" reply, and the AI model is not called
+at all. Chats are not saved. Design: [docs/01-design-v1.md](docs/01-design-v1.md);
+the approved FAQ: [docs/faq-draft.md](docs/faq-draft.md).
+
+Code: `back_end/chatbot/` (one file per job, each starts with a comment saying
+what problem it solves) and `front_end/src/components/ChatWidget.tsx`.
+Tests: `pip install -r back_end/requirements-dev.txt`, then `pytest` in `back_end/`.
+With `ANTHROPIC_API_KEY` set, the same command also runs the conversations
+against the real model.
 
 ---
 
@@ -273,9 +292,6 @@ The template with all names is [back_end/.env.example](back_end/.env.example).
   officially needs Pro ($20/month) or a move to a host such as Netlify.
 - **Custom domain:** the site uses `rosa-nails-and-spa.vercel.app`. Buying a
   domain (e.g. a `.nl`) is recommended before printing the link anywhere.
-- **Street name:** the website says *Hofwickstraat 2*, Google says
-  *Hofwijckstraat 2* — fix in [salon.ts](front_end/src/data/salon.ts) and
-  [index.html](front_end/index.html).
 - **Online booking is unfinished:** [core/availibility.py](back_end/core/availibility.py)
   has typos (`data` → `date`, `sqlachemy` → `sqlalchemy`, `display_name` →
   `display_order`) and isn't connected to the API yet.
