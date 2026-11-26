@@ -129,6 +129,8 @@ export interface ChatReply {
     reply: string;
     whatsapp: boolean;          // show the "Book via WhatsApp" button under this reply
     booking: ChatBooking | null; // set when the customer has given service, time and name
+    button: "ask" | "book";      // "Ask on WhatsApp" (a question for Rosa) or "Book via WhatsApp" (an appointment request)
+    language: "en" | "nl";       // language of the reply, so the button label matches it
 }
 
 /** Asks the server whether the chatbot is switched on. Any problem counts as "off". */

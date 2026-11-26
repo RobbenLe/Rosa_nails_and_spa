@@ -33,6 +33,7 @@ const TEXT = {
         send: "Send",
         typing: "Typing...",
         bookViaWhatsApp: "Book via WhatsApp",
+        askOnWhatsApp: "Ask on WhatsApp",
         problem: "Something went wrong. Please ask Rosa directly on WhatsApp.",
         tooMany: "You have sent many messages. Please wait a few minutes or message Rosa on WhatsApp.",
         suggestions: ["What are your prices?", "When are you open?", "I'd like to book"],
@@ -49,6 +50,7 @@ const TEXT = {
         send: "Verstuur",
         typing: "Aan het typen...",
         bookViaWhatsApp: "Boek via WhatsApp",
+        askOnWhatsApp: "Vraag via WhatsApp",
         problem: "Er ging iets mis. Vraag het Rosa direct via WhatsApp.",
         tooMany: "Je hebt veel berichten gestuurd. Wacht even of stuur Rosa een WhatsApp-bericht.",
         suggestions: ["Wat zijn de prijzen?", "Wanneer zijn jullie open?", "Ik wil een afspraak maken"],
@@ -61,6 +63,8 @@ interface ShownMessage {
     content: string;
     showWhatsApp: boolean;
     booking: ChatBooking | null;
+    button: "ask" | "book";      // which WhatsApp button label to show under this message
+    language: Language;          // language of this message: the button label follows it
 }
 
 interface ChatWidgetProps {
@@ -123,10 +127,19 @@ function guessLanguage(): Language {
 }
 
 /** The ready-written WhatsApp message. Built here, so the number and text can never come from the AI. */
-function buildWhatsAppLink(whatsappNumber: string, language: Language, booking: ChatBooking | null): string {
+function buildWhatsAppLink(
+    whatsappNumber: string,
+    language: Language,
+    booking: ChatBooking | null,
+    button: "ask" | "book"
+): string {
     let message: string;
 
-    if (booking && language === "nl") {
+    if (button === "ask" && language === "nl") {
+        message = "Hoi Rosa, ik heb een vraag.";
+    } else if (button === "ask") {
+        message = "Hi Rosa, I have a question.";
+    } else if (booking && language === "nl") {
         message = `Hoi Rosa, ik wil graag een afspraak maken voor ${booking.service} op ${booking.when}. Mijn naam is ${booking.name}.`;
     } else if (booking) {
         message = `Hi Rosa, I'd like to book ${booking.service} on ${booking.when}. My name is ${booking.name}.`;
@@ -189,7 +202,14 @@ export default function ChatWidget({ whatsapp, isEnabled, isOpen, onOpen, onClos
         if (!trimmed || isWaiting) return;
 
         setDraft("");
-        const conversation = addMessage({ role: "user", content: trimmed, showWhatsApp: false, booking: null });
+        const conversation = addMessage({
+            role: "user",
+            content: trimmed,
+            showWhatsApp: false,
+            booking: null,
+            button: "book",
+            language,
+        });
         setIsWaiting(true);
 
         const messagesForServer: ChatMessage[] = conversation
@@ -206,13 +226,23 @@ export default function ChatWidget({ whatsapp, isEnabled, isOpen, onOpen, onClos
                     content: answer.reply,
                     showWhatsApp: answer.whatsapp,
                     booking: answer.booking,
+                    button: answer.button,
+                    language: answer.language,
                 },
             ]);
         } catch (error) {
             const problemText = error instanceof ChatTooManyMessagesError ? text.tooMany : text.problem;
             setMessages([
                 ...conversation,
-                { id: nextIdRef.current++, role: "assistant", content: problemText, showWhatsApp: true, booking: null },
+                {
+                    id: nextIdRef.current++,
+                    role: "assistant",
+                    content: problemText,
+                    showWhatsApp: true,
+                    booking: null,
+                    button: "ask",
+                    language,
+                },
             ]);
         } finally {
             setIsWaiting(false);
@@ -309,13 +339,15 @@ export default function ChatWidget({ whatsapp, isEnabled, isOpen, onOpen, onClos
 
                                 {message.showWhatsApp ? (
                                     <a
-                                        href={buildWhatsAppLink(whatsapp, language, message.booking)}
+                                        href={buildWhatsAppLink(whatsapp, message.language, message.booking, message.button)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         // Pink on phones (the chat covers the screen, so it is the only pink button). On wide screens the Navbar keeps the one pink button.
                                         className="mt-2 flex min-h-11 w-fit items-center rounded-full bg-coral px-5 font-body text-xs uppercase tracking-[0.15em] lg:bg-ink lg:text-cream"
                                     >
-                                        {text.bookViaWhatsApp}
+                                        {message.button === "ask"
+                                            ? TEXT[message.language].askOnWhatsApp
+                                            : TEXT[message.language].bookViaWhatsApp}
                                     </a>
                                 ) : null}
                             </div>
