@@ -22,9 +22,10 @@ const MAX_MESSAGES_SENT = 6;
 
 const TEXT = {
     en: {
-        open: "Chat with us",
+        open: "Rosa's Assistant",
         close: "Close chat",
-        title: "Rosa's assistant",
+        title: "Rosa's Assistant",
+        subtitle: "Virtual assistant",
         privacy:
             "I'm a virtual assistant. Chats are not saved by us, but your messages are processed by an AI service (Anthropic). Please don't share health or sensitive details.",
         greeting: "Hi! Ask me about our services, prices and opening hours. I can also help you prepare a booking request.",
@@ -37,9 +38,10 @@ const TEXT = {
         suggestions: ["What are your prices?", "When are you open?", "I'd like to book"],
     },
     nl: {
-        open: "Chat met ons",
+        open: "Rosa's Assistent",
         close: "Chat sluiten",
-        title: "Rosa's assistent",
+        title: "Rosa's Assistent",
+        subtitle: "Virtuele assistent",
         privacy:
             "Ik ben een virtuele assistent. Wij slaan chats niet op, maar je berichten worden verwerkt door een AI-dienst (Anthropic). Deel geen gezondheids- of gevoelige gegevens.",
         greeting: "Hoi! Vraag me naar onze diensten, prijzen en openingstijden. Ik help je ook met een afspraakverzoek.",
@@ -230,10 +232,10 @@ export default function ChatWidget({ whatsapp, isEnabled, isOpen, onOpen, onClos
                     type="button"
                     onClick={onOpen}
                     aria-label={text.open}
-                    className="fixed right-6 bottom-6 z-50 hidden min-h-12 items-center gap-2 rounded-full bg-ink px-5 font-body text-sm uppercase tracking-[0.12em] text-cream shadow-lg transition hover:opacity-85 lg:flex"
+                    className="fixed right-6 bottom-6 z-50 hidden min-h-12 items-center gap-2 rounded-full bg-ink px-5 font-body text-sm uppercase tracking-[0.1em] whitespace-nowrap text-cream shadow-lg transition hover:opacity-85 lg:flex"
                 >
                     <ChatIcon />
-                    Chat
+                    {text.open}
                 </button>
             ) : (
                 <section
@@ -244,7 +246,10 @@ export default function ChatWidget({ whatsapp, isEnabled, isOpen, onOpen, onClos
                     className="fixed inset-x-0 top-0 bottom-0 z-[60] flex flex-col overflow-hidden bg-cream lg:inset-x-auto lg:top-auto lg:right-6 lg:bottom-6 lg:h-[34rem] lg:max-h-[75vh] lg:w-96 lg:rounded-3xl lg:border lg:border-ink/10 lg:shadow-2xl"
                 >
                     <header className="flex items-center justify-between gap-2 bg-butter pt-[max(0.5rem,env(safe-area-inset-top))] pr-3 pb-2 pl-5">
-                        <h2 className="font-display italic text-lg">{text.title}</h2>
+                        <div className="min-w-0">
+                            <h2 className="font-display italic text-lg leading-tight whitespace-nowrap">{text.title}</h2>
+                            <p className="font-body text-xs text-ink-soft">{text.subtitle}</p>
+                        </div>
                         <div className="flex items-center gap-2">
                             <div className="flex rounded-full border border-ink/20">
                                 {(["en", "nl"] as const).map((code) => (
