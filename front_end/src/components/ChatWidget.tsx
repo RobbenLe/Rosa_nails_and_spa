@@ -2,14 +2,15 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import {
     ChatTooManyMessagesError,
-    fetchChatEnabled,
     sendChat,
     type ChatBooking,
     type ChatMessage,
 } from "../api";
 
-// The chat window. It is hidden unless the server says the chatbot is switched on
-// (the kill switch), so turning the chatbot off on the server removes it from the website.
+// The chat window.
+//   - Below 1024px (phones, tablets): full screen. It is opened from the bottom bar (MobileActionBar).
+//   - 1024px and wider: a small panel in the bottom-right corner, opened from a floating button.
+// App.tsx decides whether the chat is switched on (the kill switch) and whether it is open.
 //
 // Nothing is saved: the conversation only lives in this browser tab.
 
@@ -22,7 +23,7 @@ const TEXT = {
     en: {
         open: "Chat with us",
         close: "Close chat",
-        title: "Ask Rosa's assistant",
+        title: "Rosa's assistant",
         privacy:
             "I'm a virtual assistant. Chats are not saved by us, but your messages are processed by an AI service (Anthropic). Please don't share health or sensitive details.",
         greeting: "Hi! Ask me about our services, prices and opening hours. I can also help you prepare a booking request.",
@@ -37,7 +38,7 @@ const TEXT = {
     nl: {
         open: "Chat met ons",
         close: "Chat sluiten",
-        title: "Vraag het aan Rosa's assistent",
+        title: "Rosa's assistent",
         privacy:
             "Ik ben een virtuele assistent. Wij slaan chats niet op, maar je berichten worden verwerkt door een AI-dienst (Anthropic). Deel geen gezondheids- of gevoelige gegevens.",
         greeting: "Hoi! Vraag me naar onze diensten, prijzen en openingstijden. Ik help je ook met een afspraakverzoek.",
@@ -61,6 +62,57 @@ interface ShownMessage {
 
 interface ChatWidgetProps {
     whatsapp: string;
+    isEnabled: boolean;
+    isOpen: boolean;
+    onOpen: () => void;
+    onClose: () => void;
+}
+
+// Matches Tailwind's `lg` breakpoint: below this width the chat is full screen.
+const FULL_SCREEN_QUERY = "(max-width: 1023px)";
+
+/** True while the screen is narrower than 1024px. Updates when the window is resized or rotated. */
+function useIsFullScreenLayout(): boolean {
+    const [isFullScreen, setIsFullScreen] = useState(() => window.matchMedia(FULL_SCREEN_QUERY).matches);
+
+    useEffect(() => {
+        const query = window.matchMedia(FULL_SCREEN_QUERY);
+        const update = () => setIsFullScreen(query.matches);
+        query.addEventListener("change", update);
+        return () => query.removeEventListener("change", update);
+    }, []);
+
+    return isFullScreen;
+}
+
+interface VisibleArea {
+    top: number;
+    height: number;
+}
+
+/**
+ * The part of the screen that is really visible. On phones the on-screen keyboard shrinks it,
+ * so the chat follows it: the input stays above the keyboard and the newest message stays in view.
+ * Returns null while not active, or when the browser does not support it (then CSS full height is used).
+ */
+function useVisibleArea(isActive: boolean): VisibleArea | null {
+    const [area, setArea] = useState<VisibleArea | null>(null);
+
+    useEffect(() => {
+        const viewport = window.visualViewport;
+        if (!isActive || !viewport) return;
+
+        const update = () => setArea({ top: viewport.offsetTop, height: viewport.height });
+        update();
+        viewport.addEventListener("resize", update);
+        viewport.addEventListener("scroll", update);
+        return () => {
+            viewport.removeEventListener("resize", update);
+            viewport.removeEventListener("scroll", update);
+        };
+    }, [isActive]);
+
+    return isActive ? area : null;
 }
 
 function guessLanguage(): Language {
@@ -84,9 +136,7 @@ function buildWhatsAppLink(whatsappNumber: string, language: Language, booking: 
     return `https://wa.me/${whatsappNumber.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
 }
 
-export default function ChatWidget({ whatsapp }: ChatWidgetProps) {
-    const [isEnabled, setIsEnabled] = useState(false);
-    const [isOpen, setIsOpen] = useState(false);
+export default function ChatWidget({ whatsapp, isEnabled, isOpen, onOpen, onClose }: ChatWidgetProps) {
     const [language, setLanguage] = useState<Language>(guessLanguage);
     const [messages, setMessages] = useState<ShownMessage[]>([]);
     const [draft, setDraft] = useState("");
@@ -94,20 +144,33 @@ export default function ChatWidget({ whatsapp }: ChatWidgetProps) {
     const nextIdRef = useRef(1);
     const endOfMessagesRef = useRef<HTMLDivElement>(null);
     const text = TEXT[language];
+    const isFullScreen = useIsFullScreenLayout();
+    const visibleArea = useVisibleArea(isOpen && isFullScreen);
 
-    useEffect(() => {
-        let cancelled = false;
-        fetchChatEnabled().then((enabled) => {
-            if (!cancelled) setIsEnabled(enabled);
-        });
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
+    // Keep the newest message in view, also when the keyboard opens or closes.
     useEffect(() => {
         endOfMessagesRef.current?.scrollIntoView({ block: "end" });
-    }, [messages, isWaiting, isOpen]);
+    }, [messages, isWaiting, isOpen, visibleArea?.height]);
+
+    // Full screen: stop the page behind from scrolling.
+    useEffect(() => {
+        if (!isOpen || !isFullScreen) return;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [isOpen, isFullScreen]);
+
+    // Escape closes the chat.
+    useEffect(() => {
+        if (!isOpen) return;
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === "Escape") onClose();
+        };
+        window.addEventListener("keydown", closeOnEscape);
+        return () => window.removeEventListener("keydown", closeOnEscape);
+    }, [isOpen, onClose]);
 
     if (!isEnabled) return null;
 
@@ -160,11 +223,12 @@ export default function ChatWidget({ whatsapp }: ChatWidgetProps) {
 
     return (
         <>
+            {/* Wide screens only: small floating button, dark so it does not compete with the pink Call button. */}
             {!isOpen ? (
                 <button
                     type="button"
-                    onClick={() => setIsOpen(true)}
-                    className="fixed right-4 bottom-24 z-50 rounded-full bg-coral px-6 py-3 font-body text-sm uppercase tracking-[0.15em] shadow-lg transition hover:opacity-80 md:bottom-6"
+                    onClick={onOpen}
+                    className="fixed right-6 bottom-6 z-50 hidden min-h-12 items-center rounded-full bg-ink px-6 font-body text-sm uppercase tracking-[0.15em] text-cream shadow-lg transition hover:opacity-85 lg:flex"
                 >
                     {text.open}
                 </button>
@@ -172,38 +236,42 @@ export default function ChatWidget({ whatsapp }: ChatWidgetProps) {
                 <section
                     role="dialog"
                     aria-label={text.title}
-                    className="fixed inset-x-3 bottom-24 z-50 flex max-h-[75vh] flex-col overflow-hidden rounded-3xl border border-ink/10 bg-cream shadow-2xl md:inset-x-auto md:right-6 md:bottom-6 md:w-96"
+                    // Phones and tablets: fills the visible screen. Wide screens: a panel in the corner.
+                    style={isFullScreen && visibleArea ? { top: visibleArea.top, height: visibleArea.height } : undefined}
+                    className="fixed inset-x-0 top-0 bottom-0 z-[60] flex flex-col overflow-hidden bg-cream lg:inset-x-auto lg:top-auto lg:right-6 lg:bottom-6 lg:h-[34rem] lg:max-h-[75vh] lg:w-96 lg:rounded-3xl lg:border lg:border-ink/10 lg:shadow-2xl"
                 >
-                    <header className="flex items-center justify-between gap-2 bg-butter px-5 py-3">
+                    <header className="flex items-center justify-between gap-2 bg-butter pt-[max(0.5rem,env(safe-area-inset-top))] pr-3 pb-2 pl-5">
                         <h2 className="font-display italic text-lg">{text.title}</h2>
                         <div className="flex items-center gap-2">
-                            {(["en", "nl"] as const).map((code) => (
-                                <button
-                                    key={code}
-                                    type="button"
-                                    onClick={() => setLanguage(code)}
-                                    aria-pressed={language === code}
-                                    className={`rounded-full px-2 py-0.5 font-body text-xs uppercase ${
-                                        language === code ? "bg-yellow" : "text-ink-soft"
-                                    }`}
-                                >
-                                    {code}
-                                </button>
-                            ))}
+                            <div className="flex rounded-full border border-ink/20">
+                                {(["en", "nl"] as const).map((code) => (
+                                    <button
+                                        key={code}
+                                        type="button"
+                                        onClick={() => setLanguage(code)}
+                                        aria-pressed={language === code}
+                                        className={`min-h-11 min-w-11 rounded-full font-body text-xs uppercase ${
+                                            language === code ? "bg-yellow" : "text-ink-soft"
+                                        }`}
+                                    >
+                                        {code}
+                                    </button>
+                                ))}
+                            </div>
                             <button
                                 type="button"
-                                onClick={() => setIsOpen(false)}
+                                onClick={onClose}
                                 aria-label={text.close}
-                                className="font-body text-lg"
+                                className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/30 bg-cream text-xl"
                             >
-                                {"✕"}
+                                {"\u2715"}
                             </button>
                         </div>
                     </header>
 
                     <p className="border-b border-ink/10 px-5 py-2 font-body text-xs text-ink-soft">{text.privacy}</p>
 
-                    <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4" aria-live="polite">
+                    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4" aria-live="polite">
                         <p className="max-w-[85%] rounded-2xl bg-butter px-4 py-2 font-body text-sm">{text.greeting}</p>
 
                         {messages.length === 0 ? (
@@ -213,7 +281,7 @@ export default function ChatWidget({ whatsapp }: ChatWidgetProps) {
                                         key={suggestion}
                                         type="button"
                                         onClick={() => sendMessage(suggestion)}
-                                        className="rounded-full border border-ink/20 px-3 py-1 font-body text-xs transition hover:border-ink/50"
+                                        className="min-h-11 rounded-full border border-ink/20 px-4 font-body text-xs transition hover:border-ink/50"
                                     >
                                         {suggestion}
                                     </button>
@@ -225,7 +293,7 @@ export default function ChatWidget({ whatsapp }: ChatWidgetProps) {
                             <div key={message.id} className={message.role === "user" ? "text-right" : ""}>
                                 <p
                                     className={`inline-block max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-2 text-left font-body text-sm ${
-                                        message.role === "user" ? "bg-coral" : "bg-butter"
+                                        message.role === "user" ? "bg-yellow" : "bg-butter"
                                     }`}
                                 >
                                     {message.content}
@@ -236,7 +304,7 @@ export default function ChatWidget({ whatsapp }: ChatWidgetProps) {
                                         href={buildWhatsAppLink(whatsapp, language, message.booking)}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="mt-2 block w-fit rounded-full bg-yellow px-4 py-2 font-body text-xs uppercase tracking-[0.15em]"
+                                        className="mt-2 flex min-h-11 w-fit items-center rounded-full bg-coral px-5 font-body text-xs uppercase tracking-[0.15em]"
                                     >
                                         {text.bookViaWhatsApp}
                                     </a>
@@ -248,19 +316,22 @@ export default function ChatWidget({ whatsapp }: ChatWidgetProps) {
                         <div ref={endOfMessagesRef} />
                     </div>
 
-                    <form onSubmit={handleSubmit} className="flex gap-2 border-t border-ink/10 px-4 py-3">
+                    <form
+                        onSubmit={handleSubmit}
+                        className="flex gap-2 border-t border-ink/10 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+                    >
                         <input
                             value={draft}
                             onChange={(event) => setDraft(event.target.value)}
                             maxLength={MAX_MESSAGE_CHARACTERS}
                             placeholder={text.placeholder}
                             aria-label={text.placeholder}
-                            className="min-w-0 flex-1 rounded-full border border-ink/20 bg-white px-4 py-2 font-body text-sm"
+                            className="min-h-11 min-w-0 flex-1 rounded-full border border-ink/20 bg-white px-4 font-body text-base lg:text-sm"
                         />
                         <button
                             type="submit"
                             disabled={isWaiting || !draft.trim()}
-                            className="rounded-full bg-coral px-4 py-2 font-body text-xs uppercase tracking-[0.15em] disabled:opacity-40"
+                            className="min-h-11 rounded-full border border-ink/30 bg-cream px-4 font-body text-xs uppercase tracking-[0.15em] disabled:opacity-40"
                         >
                             {text.send}
                         </button>

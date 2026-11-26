@@ -49,7 +49,8 @@ export default function Hero({ salonName, tagline, phone, status, photos }: Hero
                     </p>
 
                     <div className="mt-10 flex flex-wrap justify-center gap-4 md:justify-start">
-                        <a href={telHref} className={`${buttonBase} bg-coral hover:opacity-80`}>
+                        {/* Only one pink button per screen: below 1024px the bottom bar already has the pink WhatsApp button. */}
+                        <a href={telHref} className={`${buttonBase} hidden bg-coral hover:opacity-80 lg:inline-block`}>
                             Call to book
                         </a>
 

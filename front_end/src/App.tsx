@@ -12,7 +12,7 @@ import MobileActionBar from "./components/MobileActionBar";
 import ChatWidget from "./components/ChatWidget";
 import Footer from "./components/Footer";
 
-import { fetchReviews, fetchServices, type ReviewsResponse } from "./api";
+import { fetchChatEnabled, fetchReviews, fetchServices, type ReviewsResponse } from "./api";
 import { salon } from "./data/salon";
 import { groupServiceRows, services as fallbackServices } from "./data/services";
 import { gallery } from "./data/gallery";
@@ -24,6 +24,8 @@ const HERO_PHOTO_IDS = ["set-05", "set-08"];
 function App() {
     const [reviewData, setReviewData] = useState<ReviewsResponse | null>(null);
     const [services, setServices] = useState(fallbackServices);
+    const [isChatEnabled, setIsChatEnabled] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -43,6 +45,11 @@ function App() {
             .catch((error) => {
                 console.error("Could not load services, showing the built-in list:", error);
             });
+
+        // Chat kill switch: the chat buttons only appear when the server says the chat is on.
+        fetchChatEnabled().then((enabled) => {
+            if (!cancelled) setIsChatEnabled(enabled);
+        });
 
         return () => {
             cancelled = true;
@@ -82,9 +89,20 @@ function App() {
 
             <Footer salon={salon} />
 
-            <MobileActionBar phone={salon.phone} whatsapp={salon.whatsapp} />
+            <MobileActionBar
+                phone={salon.phone}
+                whatsapp={salon.whatsapp}
+                isChatEnabled={isChatEnabled}
+                onOpenChat={() => setIsChatOpen(true)}
+            />
 
-            <ChatWidget whatsapp={salon.whatsapp} />
+            <ChatWidget
+                whatsapp={salon.whatsapp}
+                isEnabled={isChatEnabled}
+                isOpen={isChatOpen}
+                onOpen={() => setIsChatOpen(true)}
+                onClose={() => setIsChatOpen(false)}
+            />
         </div>
     );
 }
