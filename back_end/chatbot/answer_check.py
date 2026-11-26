@@ -52,8 +52,11 @@ def find_euro_amounts(reply_text: str) -> list[float]:
     return [float(amount_text.replace(",", ".")) for amount_text in amount_texts]
 
 
-def check_reply(reply_text: str, allowed_price_amounts: set[float]) -> ReplyCheckResult:
-    """Decide whether the model's reply may be shown."""
+def check_reply(
+    reply_text: str, allowed_price_amounts: set[float], customer_names: tuple[str, ...] = ()
+) -> ReplyCheckResult:
+    """Decide whether the model's reply may be shown. customer_names: names the customer stated,
+    which are fine to repeat (a name is not a personal detail like origin or religion)."""
 
     # Step 1: the reply must have content and a sensible length
     if not reply_text or not reply_text.strip():
@@ -77,7 +80,7 @@ def check_reply(reply_text: str, allowed_price_amounts: set[float]) -> ReplyChec
             return ReplyCheckResult(False, "unknown phone number")
 
     # Step 5: never repeat or comment on personal details such as origin or religion
-    if mentions_personal_identity(reply_text):
+    if mentions_personal_identity(reply_text, allowed_names=customer_names):
         return ReplyCheckResult(False, "mentions a personal detail")
 
     return ReplyCheckResult(True)

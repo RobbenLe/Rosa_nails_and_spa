@@ -19,6 +19,8 @@ model's reply is the third.
 import re
 import unicodedata
 
+from chatbot.names import remove_stated_names
+
 # Each entry is the START of a word. "allerg" catches allergy, allergic, allergie, allergisch.
 HEALTH_WORD_STARTS_ENGLISH = [
     "allerg", "sensitiv", "irritat", "rash", "eczema", "psoria", "dermat",
@@ -142,14 +144,22 @@ PREFERENCE_PATTERN = build_whole_word_pattern(PREFERENCE_WORDS)
 WHO_DOES_IT_PATTERN = build_whole_word_pattern(WHO_DOES_IT_WORDS)
 
 
-def mentions_personal_identity(text: str) -> bool:
-    """True if the text mentions origin, nationality, religion or a similar personal detail."""
-    return PERSONAL_IDENTITY_PATTERN.search(normalise_text(text)) is not None
+def mentions_personal_identity(text: str, allowed_names: tuple[str, ...] = ()) -> bool:
+    """True if the text mentions origin, nationality, religion or a similar personal detail.
+
+    A name the customer stated about themselves is NOT a personal detail, even when it looks like
+    one ('my name is Christian'), so stated names are removed first. allowed_names covers a reply
+    that greets the customer by that name.
+    """
+    text_without_name = remove_stated_names(text)
+    for allowed_name in allowed_names:
+        text_without_name = re.sub(r"\b" + re.escape(allowed_name) + r"\b", " ", text_without_name, flags=re.IGNORECASE)
+    return PERSONAL_IDENTITY_PATTERN.search(normalise_text(text_without_name)) is not None
 
 
 def asks_for_technician_by_gender(customer_message: str) -> bool:
     """True for requests like 'I only want a woman to do it' or 'ik wil alleen een vrouw die het doet'."""
-    normalised_message = normalise_text(customer_message)
+    normalised_message = normalise_text(remove_stated_names(customer_message))
     return (
         GENDER_PATTERN.search(normalised_message) is not None
         and PREFERENCE_PATTERN.search(normalised_message) is not None
