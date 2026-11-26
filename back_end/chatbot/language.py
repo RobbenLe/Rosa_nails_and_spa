@@ -23,11 +23,12 @@ DUTCH_WORDS = {
     "waar", "wanneer", "heb", "hebben", "ben", "ook", "maar", "dat", "dit", "zijn", "naar", "bij",
     "van", "om", "dank", "dankjewel", "hoi", "hallo", "afspraak", "kost", "kosten", "prijs",
     "prijzen", "gesloten", "liever", "zou", "zin", "doet", "doen", "die", "dan", "nog", "geen",
-    "wel", "heel", "bent", "hebt", "morgen", "zaterdag", "zondag", "maandag", "vrijdag", "uur",
+    "wel", "heel", "bent", "hebt", "morgen", "zaterdag", "zondag", "maandag", "vrijdag", "dinsdag", "woensdag", "donderdag", "uur",
+    "op", "beschikbaar", "plek", "plekje", "tijd", "langskomen", "boeken", "boek", "gellak", "heet", "naam",
 }
 
 ENGLISH_WORDS = {
-    "i", "im", "the", "you", "your", "a", "an", "is", "are", "am", "do", "does", "what", "how",
+    "i", "im", "the", "you", "your", "a", "an", "are", "am", "do", "does", "what", "how",
     "where", "when", "want", "wants", "only", "my", "can", "could", "with", "for", "and", "to",
     "it", "me", "please", "price", "prices", "much", "hello", "hi", "hey", "thanks", "thank",
     "would", "like", "need", "have", "has", "this", "that", "will", "of", "on", "at", "book",

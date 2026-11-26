@@ -105,69 +105,25 @@ def test_model_json_inside_code_fence_is_accepted():
     assert answer.outcome == "answer"
 
 
-def test_complete_booking_request_gets_the_fixed_appointment_sentence():
-    booking = {"service": "Gel Manicure", "when": "Friday 14:00", "name": "Anna"}
-    answer = ask("book", fake_model_saying("Thanks Anna, that time works!", booking=booking))
-    assert answer.outcome == "booking"
-    assert answer.booking == booking
-    assert answer.reply == BOOKING_REPLIES["en"]
-    assert answer.show_whatsapp_button is True
-    assert answer.button == "book"
-
-
-def test_booking_in_one_message_in_english_is_not_sent_to_the_fallback():
-    booking = {"service": "BIAB colour", "when": "Saturday 28/11 10am", "name": "Anna"}
-    answer = ask(
-        "I'd like BIAB colour on Saturday 28/11 at 10am, my name is Anna",
-        fake_model_saying("Thanks Anna!", booking=booking),
-    )
-    assert answer.outcome == "booking"
-    assert answer.reply == BOOKING_REPLIES["en"]
-    assert answer.button == "book"
-    assert answer.booking == {"service": "BIAB (Builder Gel) - Biab Colour", "when": "Saturday 28/11 10am", "name": "Anna"}
-
-
-def test_booking_in_one_message_in_dutch_is_not_sent_to_the_fallback():
-    booking = {"service": "gellak", "when": "zaterdag 10 uur", "name": "Anna"}
-    answer = ask(
-        "Ik wil zaterdag om 10 uur gellak, ik heet Anna",
-        fake_model_saying("Dank je Anna!", booking=booking, language="nl"),
-    )
-    assert answer.outcome == "booking"
-    assert answer.reply == BOOKING_REPLIES["nl"]
-    assert answer.language == "nl"
-    assert answer.button == "book"
-    assert answer.booking["name"] == "Anna"
-
-
-def test_service_words_of_the_customer_are_kept_when_they_match_nothing_exactly():
-    booking = {"service": "Free diamond nails", "when": "Friday", "name": "Anna"}
-    answer = ask("book", fake_model_saying("Ok!", booking=booking))
-    assert answer.booking == booking
-    assert answer.reply == BOOKING_REPLIES["en"]
-
-
 def test_model_answer_with_unescaped_quotes_is_repaired_instead_of_lost():
-    # The real model may write: "reply": "Tap "Book via WhatsApp" now"  (quotes not escaped = invalid JSON)
-    broken_json = (
-        '{"reply": "Thanks! Tap "Book via WhatsApp" to continue.", "language": "en", "out_of_scope": false, '
-        '"booking": {"service": "Gel Manicure", "when": "Friday 14:00", "name": "Anna"}}'
-    )
-    answer = ask("book gel manicure friday 14:00 I am Anna", fake_model_returning_text(broken_json))
-    assert answer.outcome == "booking"
-    assert answer.booking["name"] == "Anna"
+    # The old format could break like this: "reply": "Tap "Book via WhatsApp" now"  (quotes not escaped = invalid JSON)
+    broken_json = '{"reply": "We open at "10:00" daily.", "language": "en", "out_of_scope": false, "booking_intent": false}'
+    answer = ask("what time do you open?", fake_model_returning_text(broken_json))
+    assert answer.outcome == "answer"
+    assert answer.reply == 'We open at "10:00" daily.'
+
+
+def test_model_answer_with_a_line_break_inside_the_text_is_accepted():
+    text = '{"reply": "Line one\nLine two", "language": "en", "out_of_scope": false, "booking_intent": false}'
+    text = text.replace("\\n", chr(10))
+    answer = ask("what time do you open?", fake_model_returning_text(text))
+    assert answer.outcome == "answer"
 
 
 def test_fallback_records_the_reason_without_customer_text():
     answer = ask("hello", fake_model_returning_text("Sure! No JSON here"))
     assert answer.outcome == "fallback"
     assert answer.reason == "model answer is not valid JSON"
-
-
-def test_incomplete_booking_is_dropped():
-    booking = {"service": "Gel Manicure", "when": "", "name": "Anna"}
-    answer = ask("book", fake_model_saying("Which time?", booking=booking))
-    assert answer.booking is None
 
 
 PERSONAL_MESSAGES = [
@@ -230,7 +186,7 @@ def test_dutch_error_fallback_is_dutch_and_single_language():
     "Rosa neemt contact met je op om 10:00 te bevestigen.",
 ])
 def test_reply_claiming_a_free_time_is_replaced_by_the_appointment_sentence(model_reply):
-    answer = ask("10am on 28/11/2026", fake_model_saying(model_reply))
+    answer = ask("what do you think about thursday?", fake_model_saying(model_reply))
 
     assert answer.reply == BOOKING_REPLIES["en"]
     assert answer.show_whatsapp_button is True
@@ -238,12 +194,12 @@ def test_reply_claiming_a_free_time_is_replaced_by_the_appointment_sentence(mode
     assert answer.outcome == "schedule"
 
 
-def test_prompt_forbids_claiming_a_time_is_free():
+def test_prompt_forbids_claiming_a_time_is_free_and_hands_appointments_to_the_website():
     from chatbot.prompt import build_instructions
 
     instructions = build_instructions(PRICE_LIST)
     assert "YOU DO NOT KNOW ROSA'S SCHEDULE" in instructions
-    assert "set \"booking\" in your answer" in instructions
+    assert "booking_intent" in instructions
     assert "Never write a double quote character" in instructions
     assert "Today is " in instructions
 

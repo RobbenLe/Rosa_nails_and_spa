@@ -213,13 +213,13 @@ def test_inside_opening_hours_bot_never_says_the_time_is_free(real_pipeline, cus
 
 @needs_real_model
 @pytest.mark.parametrize("customer_messages", OUTSIDE_OPENING_HOURS_REQUESTS)
-def test_outside_opening_hours_bot_says_so_and_does_not_collect_a_booking(real_pipeline, customer_messages):
+def test_outside_opening_hours_also_gets_the_appointment_sentence(real_pipeline, customer_messages):
+    # The bot does not judge the time: Rosa decides. It only shows sentence (a) and the Book button.
     answer = run_conversation(real_pipeline, customer_messages)
-    reply = answer.reply.lower()
 
     assert claims_schedule_is_free(answer.reply) is False, f"claims a free time: {answer.reply}"
-    assert any(word in reply for word in ["closed", "gesloten", "outside", "buiten", "18:00"]), answer.reply
-    assert answer.booking is None
+    assert answer.outcome == "booking", f"outcome={answer.outcome} reason={answer.reason}"
+    assert answer.button == "book"
 
 
 # ------------------------------------------------------------------ personal requests: exact sentence, no model call
@@ -274,3 +274,25 @@ def test_booking_in_one_message_gets_the_appointment_sentence(real_pipeline, cus
     assert answer.reply == BOOKING_REPLIES[language]
     assert answer.button == "book"
     assert answer.booking is not None and "anna" in answer.booking["name"].lower()
+
+
+# ------------------------------------------------------------------ the questions that failed in production
+PRODUCTION_FAILURES = [
+    ("Is there availability on Friday at 3pm?", "en"),
+    ("Hebben jullie plek op vrijdag om 15:00?", "nl"),
+    ("I'd like BIAB colour Saturday 10am, my name is Anna", "en"),
+    ("Ik wil zaterdag om 10 uur gellak, ik heet Anna", "nl"),
+    ("Are you free on Saturday?", "en"),
+    ("I want to make an appointment on Friday", "en"),
+    ("Ik wil een afspraak maken", "nl"),
+]
+
+
+@needs_real_model
+@pytest.mark.parametrize("customer_text, language", PRODUCTION_FAILURES)
+def test_production_failures_now_get_sentence_a(real_pipeline, customer_text, language):
+    answer = run_conversation(real_pipeline, [customer_text])
+
+    assert answer.outcome == "booking", f"outcome={answer.outcome} reason={answer.reason}"
+    assert answer.reply == BOOKING_REPLIES[language]
+    assert answer.button == "book"
