@@ -343,8 +343,8 @@ export default function ChatWidget({ whatsapp, isEnabled, isOpen, onOpen, onClos
                                         href={buildWhatsAppLink(whatsapp, message.language, message.booking, message.button)}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        // Pink on phones (the chat covers the screen, so it is the only pink button). On wide screens the Navbar keeps the one pink button.
-                                        className="mt-2 flex min-h-11 w-fit items-center rounded-full bg-coral px-5 font-body text-xs uppercase tracking-[0.15em] lg:bg-ink lg:text-cream"
+                                        // Pink on every screen size. Dark text on this pink has a contrast of about 7:1 (WCAG AA needs 4.5:1).
+                                        className="mt-2 flex min-h-11 w-fit items-center rounded-full bg-coral px-5 font-body text-xs uppercase tracking-[0.15em] text-ink"
                                     >
                                         {message.button === "ask"
                                             ? TEXT[message.language].askOnWhatsApp
