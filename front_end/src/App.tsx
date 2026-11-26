@@ -9,6 +9,7 @@ import Services from "./components/Services";
 import Contact from "./components/Contact";
 import SalonMap from "./components/SalonMap";
 import MobileActionBar from "./components/MobileActionBar";
+import ChatWidget from "./components/ChatWidget";
 import Footer from "./components/Footer";
 
 import { fetchReviews, fetchServices, type ReviewsResponse } from "./api";
@@ -82,6 +83,8 @@ function App() {
             <Footer salon={salon} />
 
             <MobileActionBar phone={salon.phone} whatsapp={salon.whatsapp} />
+
+            <ChatWidget whatsapp={salon.whatsapp} />
         </div>
     );
 }
