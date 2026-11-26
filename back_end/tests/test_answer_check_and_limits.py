@@ -104,14 +104,21 @@ from chatbot.answer_check import SCHEDULE_STANDARD_REPLY, claims_schedule_is_fre
     "Je afspraak is bevestigd.",
     "Dat past prima, tot dan!",
     "Geen probleem, zaterdag 10:00 is vrij.",
+    "Rosa will contact you shortly to confirm.",
+    "Rosa will message you on WhatsApp.",
+    "We'll get back to you soon.",
+    "We hold the slot for you.",
+    "Rosa neemt contact met je op.",
+    "We nemen contact met je op.",
+    "Rosa stuurt je een bericht.",
 ])
 def test_replies_that_claim_a_free_or_booked_time_are_caught(reply):
     assert claims_schedule_is_free(reply) is True
 
 
 @pytest.mark.parametrize("reply", [
-    "That time is within our opening hours. Rosa will check her schedule and confirm on WhatsApp.",
-    "Dat valt binnen onze openingstijden. Rosa kijkt in haar agenda en bevestigt via WhatsApp.",
+    "That time is within our opening hours. Tap \"Book via WhatsApp\" and send the message. Rosa will check her schedule and reply to confirm.",
+    "Dat valt binnen onze openingstijden. Tik op \"Boek via WhatsApp\" en verstuur het bericht. Rosa kijkt in haar agenda en laat je weten of het lukt.",
     "We are closed on Sunday, so 19:00 is outside our opening hours. Could you pick another day?",
     "Op zondag zijn we gesloten. Kies je een andere dag?",
     "Which service would you like, and what is your name?",
@@ -130,3 +137,8 @@ def test_approved_faq_answers_are_not_flagged_as_schedule_claims():
     for _question, english_answer, dutch_answer in FREQUENTLY_ASKED_QUESTIONS:
         assert claims_schedule_is_free(english_answer) is False, english_answer
         assert claims_schedule_is_free(dutch_answer) is False, dutch_answer
+
+
+def test_standard_sentence_tells_the_customer_to_send_the_message_themselves():
+    assert 'Tap "Book via WhatsApp" and send the message. Rosa will check her schedule and reply to confirm.' in SCHEDULE_STANDARD_REPLY
+    assert 'Tik op "Boek via WhatsApp" en verstuur het bericht. Rosa kijkt in haar agenda en laat je weten of het lukt.' in SCHEDULE_STANDARD_REPLY

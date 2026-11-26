@@ -82,17 +82,23 @@ def check_reply(reply_text: str, allowed_price_amounts: set[float]) -> ReplyChec
 # fine, booked or confirmed. These patterns catch such wording in English and Dutch.
 # Dutch "kan" is only blocked in phrases that accept a time ("dat kan"), because the plain
 # word is everywhere in normal answers ("waar kan ik betalen").
-SCHEDULE_CLAIM_WORDS = [
+SCHEDULE_CLAIM_WORDS = [  # all matched case-insensitively as whole words/phrases
     # English
     r"works", r"work for you", r"available", r"availability", r"booked", r"confirmed",
     r"reserved", r"scheduled", r"that'?s fine", r"that is fine", r"is fine", r"that'?s ok", r"that is ok",
     r"sounds good", r"no problem", r"all set", r"see you", r"is free", r"are free", r"free slot",
     r"free at", r"slot is", r"got you down", r"book you in", r"noted",
+    # promises that Rosa or the salon will make the first move, or that a slot is being held
+    r"will contact you", r"will reach out", r"will message you", r"will text you", r"will call you",
+    r"will get back to you", r"get back to you", r"we'?ll contact", r"we will contact", r"held for you",
+    r"hold (?:the|your|that) (?:time|slot|spot)", r"reserve (?:the|your|that)",
     # Dutch
     r"dat kan", r"dit kan", r"kan prima", r"kan wel", r"kan dan", r"dat past", r"past prima",
     r"past goed", r"beschikbaar", r"beschikbaarheid", r"geboekt", r"bevestigd", r"gereserveerd",
     r"ingepland", r"is vrij", r"zijn vrij", r"vrije plek", r"geen probleem", r"prima",
     r"tot dan", r"genoteerd", r"komt goed",
+    r"neemt contact", r"nemen contact", r"neem(?:t)? (?:ik|we|wij) contact", r"belt je", r"appt je", r"stuurt je een bericht",
+    r"houden (?:de|jouw|die) (?:tijd|plek) vrij", r"vastgehouden", r"reserveren wij",
 ]
 SCHEDULE_CLAIM_PATTERN = re.compile(
     r"(?<!\w)(?:" + "|".join(SCHEDULE_CLAIM_WORDS) + r")(?!\w)", re.IGNORECASE
@@ -100,8 +106,8 @@ SCHEDULE_CLAIM_PATTERN = re.compile(
 
 # The standard sentence that replaces such a reply (both languages, because we cannot be sure which one fits).
 SCHEDULE_STANDARD_REPLY = (
-    "Rosa will check her schedule and confirm on WhatsApp.\n\n"
-    "Rosa kijkt in haar agenda en bevestigt via WhatsApp."
+    'Tap "Book via WhatsApp" and send the message. Rosa will check her schedule and reply to confirm.\n\n'
+    'Tik op "Boek via WhatsApp" en verstuur het bericht. Rosa kijkt in haar agenda en laat je weten of het lukt.'
 )
 
 

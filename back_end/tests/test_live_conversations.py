@@ -201,6 +201,7 @@ def test_inside_opening_hours_bot_never_says_the_time_is_free(real_pipeline, cus
 
     assert claims_schedule_is_free(answer.reply) is False, f"claims a free time: {answer.reply}"
     assert "whatsapp" in answer.reply.lower() or answer.show_whatsapp_button is True
+    assert answer.show_whatsapp_button is True
 
 
 @needs_real_model

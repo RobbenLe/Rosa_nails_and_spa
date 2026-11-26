@@ -127,6 +127,8 @@ def test_incomplete_booking_is_dropped():
     "Saturday 28 November at 10:00 works!",
     "Zaterdag 28 november om 10:00 kan prima!",
     "That time is available, you're all set.",
+    "Rosa will contact you to confirm 10:00.",
+    "Rosa neemt contact met je op om 10:00 te bevestigen.",
 ])
 def test_reply_claiming_a_free_time_is_replaced_by_the_standard_sentence(model_reply):
     booking = {"service": "Gel Manicure", "when": "Saturday 28/11 10:00", "name": "Anna"}
@@ -143,7 +145,9 @@ def test_prompt_forbids_claiming_a_time_is_free():
 
     instructions = build_instructions(PRICE_LIST)
     assert "YOU DO NOT KNOW ROSA'S SCHEDULE" in instructions
-    assert "Rosa will check her schedule and confirm on WhatsApp" in instructions
+    assert 'Tap "Book via WhatsApp" and send the message. Rosa will check her schedule and reply to confirm.' in instructions
+    assert 'Tik op "Boek via WhatsApp" en verstuur het bericht.' in instructions
+    assert "THE CUSTOMER must send the" in instructions
     assert "Today is " in instructions
 
 
