@@ -9,6 +9,7 @@ import models
 from database import create_tables
 from seed import seed
 from services_api import router as services_router
+from chatbot.routes import router as chatbot_router
 
 load_dotenv()
 
@@ -38,6 +39,7 @@ app.add_middleware(
 )
 
 app.include_router(services_router)
+app.include_router(chatbot_router)
 
 _cache: dict = {"payload": None, "fetched_at": 0.0}
 
