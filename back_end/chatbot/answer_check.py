@@ -7,6 +7,7 @@ So every reply is checked by plain code:
   2. no web links and no e-mail addresses
   3. no phone number other than the salon's
   4. not empty and not too long
+A separate check (claims_schedule_is_free) catches replies that sound like a time slot is free or booked.
 If any check fails, the reply is thrown away and the customer gets the
 "please ask Rosa on WhatsApp" message instead. We never show an unchecked reply.
 """
@@ -74,3 +75,37 @@ def check_reply(reply_text: str, allowed_price_amounts: set[float]) -> ReplyChec
             return ReplyCheckResult(False, "unknown phone number")
 
     return ReplyCheckResult(True)
+
+
+# ----------------------------------------------------------------------------------------
+# The bot does not know Rosa's schedule. It must never say or imply that a time is free,
+# fine, booked or confirmed. These patterns catch such wording in English and Dutch.
+# Dutch "kan" is only blocked in phrases that accept a time ("dat kan"), because the plain
+# word is everywhere in normal answers ("waar kan ik betalen").
+SCHEDULE_CLAIM_WORDS = [
+    # English
+    r"works", r"work for you", r"available", r"availability", r"booked", r"confirmed",
+    r"reserved", r"scheduled", r"that'?s fine", r"that is fine", r"is fine", r"that'?s ok", r"that is ok",
+    r"sounds good", r"no problem", r"all set", r"see you", r"is free", r"are free", r"free slot",
+    r"free at", r"slot is", r"got you down", r"book you in", r"noted",
+    # Dutch
+    r"dat kan", r"dit kan", r"kan prima", r"kan wel", r"kan dan", r"dat past", r"past prima",
+    r"past goed", r"beschikbaar", r"beschikbaarheid", r"geboekt", r"bevestigd", r"gereserveerd",
+    r"ingepland", r"is vrij", r"zijn vrij", r"vrije plek", r"geen probleem", r"prima",
+    r"tot dan", r"genoteerd", r"komt goed",
+]
+SCHEDULE_CLAIM_PATTERN = re.compile(
+    r"(?<!\w)(?:" + "|".join(SCHEDULE_CLAIM_WORDS) + r")(?!\w)", re.IGNORECASE
+)
+
+# The standard sentence that replaces such a reply (both languages, because we cannot be sure which one fits).
+SCHEDULE_STANDARD_REPLY = (
+    "Rosa will check her schedule and confirm on WhatsApp.\n\n"
+    "Rosa kijkt in haar agenda en bevestigt via WhatsApp."
+)
+
+
+def claims_schedule_is_free(reply_text: str) -> bool:
+    """True if the reply sounds like a time is available, fine, booked or confirmed."""
+    normalised_text = reply_text.replace("’", "'")
+    return SCHEDULE_CLAIM_PATTERN.search(normalised_text) is not None

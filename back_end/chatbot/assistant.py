@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from chatbot import settings
-from chatbot.answer_check import check_reply
+from chatbot.answer_check import SCHEDULE_STANDARD_REPLY, check_reply, claims_schedule_is_free
 from chatbot.price_list import PriceListEntry, allowed_price_amounts_in_euros
 from chatbot.prompt import build_instructions
 from chatbot.safety import HEALTH_FIXED_REPLY, any_message_mentions_health_topic
@@ -139,6 +139,11 @@ def answer_conversation(
 
     # Step 7: keep a booking request only if it is complete and valid
     booking = validate_booking(parsed_answer.get("booking"), price_list)
+
+    # Step 8: the bot does not know Rosa's schedule. If the reply sounds like a time is free,
+    # fine or booked, replace it with the standard sentence (the booking details are kept for WhatsApp).
+    if claims_schedule_is_free(reply_text):
+        return ChatAnswer(SCHEDULE_STANDARD_REPLY, show_whatsapp_button=True, booking=booking, outcome="schedule")
     mentions_whatsapp = "whatsapp" in reply_text.lower()
 
     return ChatAnswer(

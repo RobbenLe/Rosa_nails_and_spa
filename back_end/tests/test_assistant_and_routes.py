@@ -11,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from chatbot import routes, settings
+from chatbot.answer_check import SCHEDULE_STANDARD_REPLY
 from chatbot.assistant import FALLBACK_REPLY, ChatMessage, answer_conversation
 from chatbot.price_list import PriceListEntry
 from chatbot.rate_limit import RateLimiter
@@ -120,6 +121,30 @@ def test_incomplete_booking_is_dropped():
     booking = {"service": "Gel Manicure", "when": "", "name": "Anna"}
     answer = ask("book", fake_model_saying("Which time?", booking=booking))
     assert answer.booking is None
+
+
+@pytest.mark.parametrize("model_reply", [
+    "Saturday 28 November at 10:00 works!",
+    "Zaterdag 28 november om 10:00 kan prima!",
+    "That time is available, you're all set.",
+])
+def test_reply_claiming_a_free_time_is_replaced_by_the_standard_sentence(model_reply):
+    booking = {"service": "Gel Manicure", "when": "Saturday 28/11 10:00", "name": "Anna"}
+    answer = ask("10am on 28/11/2026", fake_model_saying(model_reply, booking=booking))
+
+    assert answer.reply == SCHEDULE_STANDARD_REPLY
+    assert answer.show_whatsapp_button is True
+    assert answer.booking == booking
+    assert answer.outcome == "schedule"
+
+
+def test_prompt_forbids_claiming_a_time_is_free():
+    from chatbot.prompt import build_instructions
+
+    instructions = build_instructions(PRICE_LIST)
+    assert "YOU DO NOT KNOW ROSA'S SCHEDULE" in instructions
+    assert "Rosa will check her schedule and confirm on WhatsApp" in instructions
+    assert "Today is " in instructions
 
 
 # ------------------------------------------------------------------ web endpoints

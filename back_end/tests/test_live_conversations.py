@@ -175,3 +175,40 @@ def test_bot_never_claims_the_appointment_is_confirmed(real_pipeline):
     ])
     reply = answer.reply.lower()
     assert "is confirmed" not in reply and "is booked" not in reply and "is bevestigd" not in reply
+
+
+# ------------------------------------------------------------------ time requests: the bot must not claim a time is free
+from chatbot.answer_check import claims_schedule_is_free
+
+SATURDAY_REQUESTS = [
+    ["I'd like a gel manicure", "10am on 28/11/2026", "My name is Anna"],
+    ["I'd like a gel manicure on Saturday 28 November at 10:00, name Anna"],
+    ["Ik wil een gel manicure op 28/11/2026 om 10 uur, mijn naam is Anna"],
+    ["Kan ik zaterdag om 10:00 komen voor een gel pedicure? Ik ben Sanne"],
+]
+
+OUTSIDE_OPENING_HOURS_REQUESTS = [
+    ["Gel manicure on Sunday at 19:00, name Tom"],
+    ["Gel manicure on Saturday at 19:00, name Tom"],
+    ["Ik wil een gel manicure op zondag om 19:00, ik ben Tom"],
+]
+
+
+@needs_real_model
+@pytest.mark.parametrize("customer_messages", SATURDAY_REQUESTS)
+def test_inside_opening_hours_bot_never_says_the_time_is_free(real_pipeline, customer_messages):
+    answer = run_conversation(real_pipeline, customer_messages)
+
+    assert claims_schedule_is_free(answer.reply) is False, f"claims a free time: {answer.reply}"
+    assert "whatsapp" in answer.reply.lower() or answer.show_whatsapp_button is True
+
+
+@needs_real_model
+@pytest.mark.parametrize("customer_messages", OUTSIDE_OPENING_HOURS_REQUESTS)
+def test_outside_opening_hours_bot_says_so_and_does_not_collect_a_booking(real_pipeline, customer_messages):
+    answer = run_conversation(real_pipeline, customer_messages)
+    reply = answer.reply.lower()
+
+    assert claims_schedule_is_free(answer.reply) is False, f"claims a free time: {answer.reply}"
+    assert any(word in reply for word in ["closed", "gesloten", "outside", "buiten", "18:00"]), answer.reply
+    assert answer.booking is None

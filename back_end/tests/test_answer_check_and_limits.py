@@ -79,3 +79,54 @@ def test_model_call_cap_per_hour():
 
     assert limiter.allow_model_call(now=start + 1000) is False
     assert limiter.allow_model_call(now=start + 3700) is True
+
+
+# ------------------------------------------------------------------ schedule claims
+from chatbot.answer_check import SCHEDULE_STANDARD_REPLY, claims_schedule_is_free
+
+
+@pytest.mark.parametrize("reply", [
+    "Saturday 28 November at 10:00 works!",
+    "Saturday 28 November at 10:00 works",
+    "That time is available.",
+    "Yes, we have availability on Friday.",
+    "Your appointment is booked.",
+    "You're booked for Friday 14:00.",
+    "Your appointment is confirmed.",
+    "That's fine, see you then!",
+    "That’s fine!",
+    "Sounds good, no problem.",
+    "Friday at 14:00 is free.",
+    "Zaterdag 10:00 kan prima.",
+    "Dat kan!",
+    "Die tijd is beschikbaar.",
+    "Je afspraak is geboekt.",
+    "Je afspraak is bevestigd.",
+    "Dat past prima, tot dan!",
+    "Geen probleem, zaterdag 10:00 is vrij.",
+])
+def test_replies_that_claim_a_free_or_booked_time_are_caught(reply):
+    assert claims_schedule_is_free(reply) is True
+
+
+@pytest.mark.parametrize("reply", [
+    "That time is within our opening hours. Rosa will check her schedule and confirm on WhatsApp.",
+    "Dat valt binnen onze openingstijden. Rosa kijkt in haar agenda en bevestigt via WhatsApp.",
+    "We are closed on Sunday, so 19:00 is outside our opening hours. Could you pick another day?",
+    "Op zondag zijn we gesloten. Kies je een andere dag?",
+    "Which service would you like, and what is your name?",
+    "Waar kan ik betalen? Je kunt contant of met PIN betalen.",
+    "Rosa confirms your appointment personally on WhatsApp.",
+    "A gel manicure is €25 and takes 60 minutes.",
+    SCHEDULE_STANDARD_REPLY,
+])
+def test_normal_replies_are_not_flagged_as_schedule_claims(reply):
+    assert claims_schedule_is_free(reply) is False
+
+
+def test_approved_faq_answers_are_not_flagged_as_schedule_claims():
+    from chatbot.salon_facts import FREQUENTLY_ASKED_QUESTIONS
+
+    for _question, english_answer, dutch_answer in FREQUENTLY_ASKED_QUESTIONS:
+        assert claims_schedule_is_free(english_answer) is False, english_answer
+        assert claims_schedule_is_free(dutch_answer) is False, dutch_answer
