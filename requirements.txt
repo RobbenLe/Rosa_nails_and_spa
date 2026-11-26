@@ -6,3 +6,4 @@ python-dotenv
 sqlalchemy
 tzdata
 psycopg[binary]
+anthropic==2.14.0
