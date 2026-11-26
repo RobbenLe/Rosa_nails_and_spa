@@ -119,16 +119,17 @@ export interface ChatMessage {
     content: string;
 }
 
+/** What the customer told us. Any part can be missing: it is then left out of the WhatsApp message. */
 export interface ChatBooking {
-    service: string;
-    when: string;
-    name: string;
+    service?: string;
+    when?: string;
+    name?: string;
 }
 
 export interface ChatReply {
     reply: string;
     whatsapp: boolean;          // show the "Book via WhatsApp" button under this reply
-    booking: ChatBooking | null; // set when the customer has given service, time and name
+    booking: ChatBooking | null; // what the customer told us (service, time, name); any part may be missing
     button: "ask" | "book";      // "Ask on WhatsApp" (a question for Rosa) or "Book via WhatsApp" (an appointment request)
     language: "en" | "nl";       // language of the reply, so the button label matches it
 }

@@ -135,18 +135,19 @@ function buildWhatsAppLink(
 ): string {
     let message: string;
 
-    if (button === "ask" && language === "nl") {
-        message = "Hoi Rosa, ik heb een vraag.";
-    } else if (button === "ask") {
-        message = "Hi Rosa, I have a question.";
-    } else if (booking && language === "nl") {
-        message = `Hoi Rosa, ik wil graag een afspraak maken voor ${booking.service} op ${booking.when}. Mijn naam is ${booking.name}.`;
-    } else if (booking) {
-        message = `Hi Rosa, I'd like to book ${booking.service} on ${booking.when}. My name is ${booking.name}.`;
+    if (button === "ask") {
+        message = language === "nl" ? "Hoi Rosa, ik heb een vraag." : "Hi Rosa, I have a question.";
     } else if (language === "nl") {
-        message = "Hoi Rosa, ik wil graag een afspraak maken.";
+        // Only what the customer told us: any part that is missing is left out.
+        const forService = booking?.service ? ` voor ${booking.service}` : "";
+        const onWhen = booking?.when ? ` op ${booking.when}` : "";
+        const myName = booking?.name ? ` Mijn naam is ${booking.name}.` : "";
+        message = `Hoi Rosa, ik wil graag een afspraak maken${forService}${onWhen}.${myName}`;
     } else {
-        message = "Hi Rosa, I'd like to make an appointment.";
+        const whatToBook = booking?.service ? ` ${booking.service}` : " an appointment";
+        const onWhen = booking?.when ? ` on ${booking.when}` : "";
+        const myName = booking?.name ? ` My name is ${booking.name}.` : "";
+        message = `Hi Rosa, I'd like to book${whatToBook}${onWhen}.${myName}`;
     }
 
     return `https://wa.me/${whatsappNumber.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
