@@ -1,9 +1,10 @@
 """The chatbot's brain: turns a conversation into one safe answer.
 
 PROBLEM THIS FILE SOLVES
-Connects the safety filter, the live price list, the AI model and the reply checker in a
+Connects the safety filters, the live price list, the AI model and the reply checker in a
 fixed order, and guarantees that whatever goes wrong (database down, model error, strange
-reply) the customer gets a calm "ask Rosa on WhatsApp" message instead of a guess.
+reply, a personal question) the customer gets the fixed "Rosa can help you with that
+personally" answer, in ONE language, instead of a guess.
 
 The model call and the price list loader are passed in, so tests can run the whole
 pipeline without internet, a database or any cost.
@@ -15,16 +16,12 @@ from dataclasses import dataclass
 from typing import Callable
 
 from chatbot import settings
-from chatbot.answer_check import SCHEDULE_STANDARD_REPLY, check_reply, claims_schedule_is_free
+from chatbot.answer_check import check_reply, claims_schedule_is_free
+from chatbot.fixed_replies import ASK_ROSA_REPLIES, BUTTON_ASK, BUTTON_BOOK, SCHEDULE_REPLIES
+from chatbot.language import customer_language
 from chatbot.price_list import PriceListEntry, allowed_price_amounts_in_euros
 from chatbot.prompt import build_instructions
-from chatbot.safety import HEALTH_FIXED_REPLY, any_message_mentions_health_topic
-
-# Same message in both languages, because when something fails we cannot be sure of the language.
-FALLBACK_REPLY = (
-    "I'm not sure about that, so I don't want to guess. Rosa can help you best on WhatsApp.\n\n"
-    "Daar ben ik niet zeker van, en ik wil niet gokken. Rosa helpt je het beste via WhatsApp."
-)
+from chatbot.safety import any_message_mentions_health_topic, is_personal_request
 
 MAX_BOOKING_FIELD_CHARACTERS = 80
 
@@ -40,7 +37,9 @@ class ChatAnswer:
     reply: str
     show_whatsapp_button: bool
     booking: dict | None     # {"service": ..., "when": ..., "name": ...} or None
-    outcome: str             # "answer", "booking", "health", "unsure", "fallback"  (for logs, no personal data)
+    outcome: str             # "answer", "booking", "health", "personal", "unsure", "schedule", "fallback" (for logs, no personal data)
+    language: str = "en"     # "en" or "nl": the language of the reply, so the button label can match
+    button: str = BUTTON_BOOK  # "ask" or "book": which WhatsApp button label to show
 
 
 # A function that takes (instructions, messages) and returns the model's raw text.
@@ -48,8 +47,16 @@ ModelCaller = Callable[[str, list[ChatMessage]], str]
 PriceListLoader = Callable[[], list[PriceListEntry]]
 
 
-def make_fallback_answer(outcome: str = "fallback") -> ChatAnswer:
-    return ChatAnswer(FALLBACK_REPLY, show_whatsapp_button=True, booking=None, outcome=outcome)
+def make_ask_rosa_answer(language: str, outcome: str) -> ChatAnswer:
+    """The fixed answer for everything the bot may not answer itself. Word for word, one language."""
+    return ChatAnswer(
+        reply=ASK_ROSA_REPLIES[language],
+        show_whatsapp_button=True,
+        booking=None,
+        outcome=outcome,
+        language=language,
+        button=BUTTON_ASK,
+    )
 
 
 def extract_json_object(model_text: str) -> dict | None:
@@ -98,52 +105,73 @@ def answer_conversation(
     call_model: ModelCaller,
     load_prices: PriceListLoader,
 ) -> ChatAnswer:
-    """Follow the fixed steps. Any problem leads to the WhatsApp fallback."""
+    """Follow the fixed steps. Anything the bot may not answer leads to the fixed 'ask Rosa' answer."""
 
     recent_messages = messages[-settings.MAX_MESSAGES_IN_CONVERSATION:]
     customer_texts = [message.content for message in recent_messages if message.role == "user"]
+    latest_customer_text = customer_texts[-1] if customer_texts else ""
+    language = customer_language(customer_texts)
 
-    # Step 1: health topics get the fixed reply and the model is never called
+    # Step 1: health topics anywhere in the recent conversation: fixed answer, the model is never called
     if any_message_mentions_health_topic(customer_texts):
-        return ChatAnswer(HEALTH_FIXED_REPLY, show_whatsapp_button=True, booking=None, outcome="health")
+        return make_ask_rosa_answer(language, "health")
 
-    # Step 2: read the live price list (read-only database user)
+    # Step 2: personal request or personal detail in the latest message (for example the choice of
+    # technician, origin, religion): fixed answer, the model is never called
+    if is_personal_request(latest_customer_text):
+        return make_ask_rosa_answer(language, "personal")
+
+    # Step 3: read the live price list (read-only database user)
     try:
         price_list = load_prices()
     except Exception:
-        return make_fallback_answer("fallback")
+        return make_ask_rosa_answer(language, "fallback")
 
     if not price_list:
-        return make_fallback_answer("fallback")
+        return make_ask_rosa_answer(language, "fallback")
 
-    # Step 3: ask the model
+    # Step 4: ask the model
     try:
         model_text = call_model(build_instructions(price_list), recent_messages)
     except Exception:
-        return make_fallback_answer("fallback")
+        return make_ask_rosa_answer(language, "fallback")
 
-    # Step 4: the model must answer in the agreed shape
+    # Step 5: the model must answer in the agreed shape
     parsed_answer = extract_json_object(model_text)
-    if parsed_answer is None or not isinstance(parsed_answer.get("reply"), str):
-        return make_fallback_answer("fallback")
+    if parsed_answer is None:
+        return make_ask_rosa_answer(language, "fallback")
 
-    # Step 5: when the model says it is unsure, show our fixed message, not its words
-    if parsed_answer.get("unsure") is True:
-        return make_fallback_answer("unsure")
+    # If the customer's messages gave no clear language, use the one the model reported
+    language = customer_language(customer_texts, model_language=parsed_answer.get("language"))
 
-    # Step 6: check the reply text (prices, links, phone numbers, length)
+    # Step 6: outside what the bot may answer, or not sure: the fixed answer, not the model's words
+    if parsed_answer.get("out_of_scope") is True or parsed_answer.get("unsure") is True:
+        return make_ask_rosa_answer(language, "unsure")
+
+    if not isinstance(parsed_answer.get("reply"), str):
+        return make_ask_rosa_answer(language, "fallback")
+
+    # Step 7: check the reply text (prices, links, phone numbers, personal details, length)
     reply_text = parsed_answer["reply"].strip()
     reply_check = check_reply(reply_text, allowed_price_amounts_in_euros(price_list))
     if not reply_check.is_acceptable:
-        return make_fallback_answer("fallback")
+        return make_ask_rosa_answer(language, "fallback")
 
-    # Step 7: keep a booking request only if it is complete and valid
+    # Step 8: keep a booking request only if it is complete and valid
     booking = validate_booking(parsed_answer.get("booking"), price_list)
 
-    # Step 8: the bot does not know Rosa's schedule. If the reply sounds like a time is free,
+    # Step 9: the bot does not know Rosa's schedule. If the reply sounds like a time is free,
     # fine or booked, replace it with the standard sentence (the booking details are kept for WhatsApp).
     if claims_schedule_is_free(reply_text):
-        return ChatAnswer(SCHEDULE_STANDARD_REPLY, show_whatsapp_button=True, booking=booking, outcome="schedule")
+        return ChatAnswer(
+            reply=SCHEDULE_REPLIES[language],
+            show_whatsapp_button=True,
+            booking=booking,
+            outcome="schedule",
+            language=language,
+            button=BUTTON_BOOK,
+        )
+
     mentions_whatsapp = "whatsapp" in reply_text.lower()
 
     return ChatAnswer(
@@ -151,4 +179,6 @@ def answer_conversation(
         show_whatsapp_button=booking is not None or mentions_whatsapp,
         booking=booking,
         outcome="booking" if booking else "answer",
+        language=language,
+        button=BUTTON_BOOK,
     )

@@ -8,13 +8,15 @@ So every reply is checked by plain code:
   3. no phone number other than the salon's
   4. not empty and not too long
 A separate check (claims_schedule_is_free) catches replies that sound like a time slot is free or booked.
-If any check fails, the reply is thrown away and the customer gets the
-"please ask Rosa on WhatsApp" message instead. We never show an unchecked reply.
+  5. the reply must not mention the customer's origin, religion or similar personal details
+If any check fails, the reply is thrown away and the customer gets the fixed
+"Rosa can help you with that personally" answer instead. We never show an unchecked reply.
 """
 
 import re
 from dataclasses import dataclass
 
+from chatbot.safety import mentions_personal_identity
 from chatbot.salon_facts import SALON_PHONE_DISPLAY
 
 MAX_REPLY_CHARACTERS = 900
@@ -74,6 +76,10 @@ def check_reply(reply_text: str, allowed_price_amounts: set[float]) -> ReplyChec
         if digits_only(phone_like_text) not in salon_phone_digit_forms():
             return ReplyCheckResult(False, "unknown phone number")
 
+    # Step 5: never repeat or comment on personal details such as origin or religion
+    if mentions_personal_identity(reply_text):
+        return ReplyCheckResult(False, "mentions a personal detail")
+
     return ReplyCheckResult(True)
 
 
@@ -103,13 +109,6 @@ SCHEDULE_CLAIM_WORDS = [  # all matched case-insensitively as whole words/phrase
 SCHEDULE_CLAIM_PATTERN = re.compile(
     r"(?<!\w)(?:" + "|".join(SCHEDULE_CLAIM_WORDS) + r")(?!\w)", re.IGNORECASE
 )
-
-# The standard sentence that replaces such a reply (both languages, because we cannot be sure which one fits).
-SCHEDULE_STANDARD_REPLY = (
-    'Tap "Book via WhatsApp" and send the message. Rosa will check her schedule and reply to confirm.\n\n'
-    'Tik op "Boek via WhatsApp" en verstuur het bericht. Rosa kijkt in haar agenda en laat je weten of het lukt.'
-)
-
 
 def claims_schedule_is_free(reply_text: str) -> bool:
     """True if the reply sounds like a time is available, fine, booked or confirmed."""

@@ -82,7 +82,8 @@ def test_model_call_cap_per_hour():
 
 
 # ------------------------------------------------------------------ schedule claims
-from chatbot.answer_check import SCHEDULE_STANDARD_REPLY, claims_schedule_is_free
+from chatbot.answer_check import claims_schedule_is_free
+from chatbot.fixed_replies import ASK_ROSA_REPLIES, SCHEDULE_REPLIES
 
 
 @pytest.mark.parametrize("reply", [
@@ -125,7 +126,8 @@ def test_replies_that_claim_a_free_or_booked_time_are_caught(reply):
     "Waar kan ik betalen? Je kunt contant of met PIN betalen.",
     "Rosa confirms your appointment personally on WhatsApp.",
     "A gel manicure is €25 and takes 60 minutes.",
-    SCHEDULE_STANDARD_REPLY,
+    *SCHEDULE_REPLIES.values(),
+    *ASK_ROSA_REPLIES.values(),
 ])
 def test_normal_replies_are_not_flagged_as_schedule_claims(reply):
     assert claims_schedule_is_free(reply) is False
@@ -140,5 +142,25 @@ def test_approved_faq_answers_are_not_flagged_as_schedule_claims():
 
 
 def test_standard_sentence_tells_the_customer_to_send_the_message_themselves():
-    assert 'Tap "Book via WhatsApp" and send the message. Rosa will check her schedule and reply to confirm.' in SCHEDULE_STANDARD_REPLY
-    assert 'Tik op "Boek via WhatsApp" en verstuur het bericht. Rosa kijkt in haar agenda en laat je weten of het lukt.' in SCHEDULE_STANDARD_REPLY
+    assert SCHEDULE_REPLIES["en"] == 'Tap "Book via WhatsApp" and send the message. Rosa will check her schedule and reply to confirm.'
+    assert SCHEDULE_REPLIES["nl"] == 'Tik op "Boek via WhatsApp" en verstuur het bericht. Rosa kijkt in haar agenda en laat je weten of het lukt.'
+
+
+def test_ask_rosa_sentences_are_exactly_the_approved_text():
+    assert ASK_ROSA_REPLIES["en"] == (
+        'Rosa can help you with that personally. Tap "Ask on WhatsApp" and send her a message, '
+        "and she'll reply as soon as she can."
+    )
+    assert ASK_ROSA_REPLIES["nl"] == (
+        'Daar helpt Rosa je graag persoonlijk mee. Tik op "Vraag via WhatsApp" en stuur haar een bericht, '
+        "dan antwoordt ze zo snel mogelijk."
+    )
+
+
+@pytest.mark.parametrize("reply", [
+    "Of course, we welcome Moroccan customers too!",
+    "Natuurlijk, ook voor moslims is iedereen welkom.",
+    "No problem with your religion.",
+])
+def test_replies_that_comment_on_personal_details_are_rejected(reply):
+    assert check_reply(reply, ALLOWED).is_acceptable is False

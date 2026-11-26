@@ -14,7 +14,8 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from chatbot import settings
-from chatbot.assistant import ChatMessage, make_fallback_answer, answer_conversation
+from chatbot.assistant import ChatMessage, answer_conversation, make_ask_rosa_answer
+from chatbot.language import customer_language
 from chatbot.model_client import call_anthropic_model
 from chatbot.price_list import load_price_list
 from chatbot.rate_limit import RateLimiter
@@ -61,12 +62,14 @@ def chat(body: ChatRequest, request: Request):
     if not rate_limiter.allow_visitor_message(find_visitor_id(request)):
         raise HTTPException(status_code=429, detail="Too many messages, please try again later")
 
+    messages = [ChatMessage(role=message.role, content=message.content) for message in body.messages]
+
     if not rate_limiter.allow_model_call():
-        answer = make_fallback_answer("fallback")
+        customer_texts = [message.content for message in messages if message.role == "user"]
+        answer = make_ask_rosa_answer(customer_language(customer_texts), "fallback")
         return build_response(answer)
 
     # Step 4: answer
-    messages = [ChatMessage(role=message.role, content=message.content) for message in body.messages]
     answer = answer_conversation(messages, call_anthropic_model, load_price_list)
 
     # Step 5: log the outcome type only, never the text
@@ -80,4 +83,6 @@ def build_response(answer) -> dict:
         "reply": answer.reply,
         "whatsapp": answer.show_whatsapp_button,
         "booking": answer.booking,
+        "button": answer.button,        # "ask" or "book": which WhatsApp button label the website shows
+        "language": answer.language,    # "en" or "nl": the language of the reply
     }

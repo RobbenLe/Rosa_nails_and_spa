@@ -11,11 +11,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from chatbot import routes, settings
-from chatbot.answer_check import SCHEDULE_STANDARD_REPLY
-from chatbot.assistant import FALLBACK_REPLY, ChatMessage, answer_conversation
+from chatbot.assistant import ChatMessage, answer_conversation
+from chatbot.fixed_replies import ASK_ROSA_REPLIES, SCHEDULE_REPLIES
 from chatbot.price_list import PriceListEntry
 from chatbot.rate_limit import RateLimiter
-from chatbot.safety import HEALTH_FIXED_REPLY
 
 PRICE_LIST = [
     PriceListEntry("Manicure & Pedicure", "Gel Manicure", "", 60, 2500),
@@ -27,10 +26,10 @@ def load_test_prices():
     return PRICE_LIST
 
 
-def fake_model_saying(reply: str, unsure: bool = False, booking=None):
+def fake_model_saying(reply: str, unsure: bool = False, booking=None, out_of_scope: bool = False, language: str = "en"):
     """A pretend model that always answers with the given JSON."""
     def call_model(instructions, messages):
-        return json.dumps({"reply": reply, "unsure": unsure, "booking": booking})
+        return json.dumps({"reply": reply, "unsure": unsure, "booking": booking, "out_of_scope": out_of_scope, "language": language})
     return call_model
 
 
@@ -57,20 +56,21 @@ def test_normal_answer_passes_through():
 
 def test_health_question_never_reaches_the_model():
     answer = ask("I'm pregnant, can I get a gel manicure?", model_that_must_not_be_called)
-    assert answer.reply == HEALTH_FIXED_REPLY
+    assert answer.reply == ASK_ROSA_REPLIES["en"]
+    assert answer.button == "ask"
     assert answer.show_whatsapp_button is True
     assert answer.outcome == "health"
 
 
 def test_wrong_price_from_the_model_is_blocked():
     answer = ask("price gel manicure?", fake_model_saying("A gel manicure is €10."))
-    assert answer.reply == FALLBACK_REPLY
+    assert answer.reply == ASK_ROSA_REPLIES["en"]
     assert answer.show_whatsapp_button is True
 
 
 def test_model_saying_unsure_gives_fixed_fallback():
     answer = ask("do you sell gift cards?", fake_model_saying("Maybe, I think so!", unsure=True))
-    assert answer.reply == FALLBACK_REPLY
+    assert answer.reply == ASK_ROSA_REPLIES["en"]
     assert answer.outcome == "unsure"
 
 
@@ -78,7 +78,7 @@ def test_model_error_gives_fallback():
     def broken_model(instructions, messages):
         raise TimeoutError("model too slow")
 
-    assert ask("hello", broken_model).reply == FALLBACK_REPLY
+    assert ask("hello", broken_model).reply == ASK_ROSA_REPLIES["en"]
 
 
 def test_database_error_gives_fallback():
@@ -86,15 +86,15 @@ def test_database_error_gives_fallback():
         raise ConnectionError("database down")
 
     answer = ask("price?", fake_model_saying("€25"), load_prices=broken_database)
-    assert answer.reply == FALLBACK_REPLY
+    assert answer.reply == ASK_ROSA_REPLIES["en"]
 
 
 def test_empty_price_list_gives_fallback():
-    assert ask("price?", fake_model_saying("€25"), load_prices=lambda: []).reply == FALLBACK_REPLY
+    assert ask("price?", fake_model_saying("€25"), load_prices=lambda: []).reply == ASK_ROSA_REPLIES["en"]
 
 
 def test_garbage_from_the_model_gives_fallback():
-    assert ask("hello", fake_model_returning_text("Sure! No JSON here")).reply == FALLBACK_REPLY
+    assert ask("hello", fake_model_returning_text("Sure! No JSON here")).reply == ASK_ROSA_REPLIES["en"]
 
 
 def test_model_json_inside_code_fence_is_accepted():
@@ -123,6 +123,58 @@ def test_incomplete_booking_is_dropped():
     assert answer.booking is None
 
 
+PERSONAL_MESSAGES = [
+    ("I am Moroccan, I only want a woman to do it for me", "en"),
+    ("Ik ben Marokkaans, ik wil alleen een vrouw die het voor mij doet", "nl"),
+    ("Can a female technician do my nails?? I only want women", "en"),
+]
+
+
+@pytest.mark.parametrize("customer_text, language", PERSONAL_MESSAGES)
+def test_personal_request_gets_the_exact_ask_rosa_sentence_in_one_language(customer_text, language):
+    answer = ask(customer_text, model_that_must_not_be_called)
+
+    assert answer.reply == ASK_ROSA_REPLIES[language]
+    other_language = "nl" if language == "en" else "en"
+    assert ASK_ROSA_REPLIES[other_language] not in answer.reply
+    assert answer.language == language
+    assert answer.button == "ask"
+    assert answer.show_whatsapp_button is True
+    assert answer.booking is None
+    assert answer.outcome == "personal"
+
+
+def test_reply_never_repeats_the_personal_detail():
+    answer = ask("I am Moroccan, I only want a woman to do it for me", model_that_must_not_be_called)
+    for forbidden_word in ["moroccan", "woman", "marokkaans", "vrouw"]:
+        assert forbidden_word not in answer.reply.lower()
+
+
+@pytest.mark.parametrize("customer_text, language", [
+    ("Can you recommend a good restaurant nearby?", "en"),
+    ("Kunnen jullie ook mijn haar knippen?", "nl"),
+])
+def test_out_of_scope_flag_from_the_model_gives_the_exact_sentence_in_the_customers_language(customer_text, language):
+    answer = ask(customer_text, fake_model_saying("", out_of_scope=True, language="en"))
+    assert answer.reply == ASK_ROSA_REPLIES[language]
+    assert answer.button == "ask"
+
+
+def test_model_reply_that_comments_on_origin_is_replaced():
+    answer = ask("what time do you open?", fake_model_saying("We welcome Moroccan customers! We open at 10:00."))
+    assert answer.reply == ASK_ROSA_REPLIES["en"]
+    assert "moroccan" not in answer.reply.lower()
+
+
+def test_dutch_error_fallback_is_dutch_and_single_language():
+    def broken_model(instructions, messages):
+        raise TimeoutError("slow")
+
+    answer = ask("Wat kost een gel manicure?", broken_model)
+    assert answer.reply == ASK_ROSA_REPLIES["nl"]
+    assert answer.language == "nl"
+
+
 @pytest.mark.parametrize("model_reply", [
     "Saturday 28 November at 10:00 works!",
     "Zaterdag 28 november om 10:00 kan prima!",
@@ -134,7 +186,8 @@ def test_reply_claiming_a_free_time_is_replaced_by_the_standard_sentence(model_r
     booking = {"service": "Gel Manicure", "when": "Saturday 28/11 10:00", "name": "Anna"}
     answer = ask("10am on 28/11/2026", fake_model_saying(model_reply, booking=booking))
 
-    assert answer.reply == SCHEDULE_STANDARD_REPLY
+    assert answer.reply == SCHEDULE_REPLIES["en"]
+    assert answer.button == "book"
     assert answer.show_whatsapp_button is True
     assert answer.booking == booking
     assert answer.outcome == "schedule"
@@ -173,6 +226,16 @@ def test_endpoint_answers(client):
     response = post_chat(client)
     assert response.status_code == 200
     assert "€25" in response.json()["reply"]
+    assert response.json()["button"] == "book"
+    assert response.json()["language"] == "en"
+
+
+def test_endpoint_personal_request_returns_the_ask_button(client):
+    response = post_chat(client, "I am Moroccan, I only want a woman to do it for me")
+    body = response.json()
+    assert body["reply"] == ASK_ROSA_REPLIES["en"]
+    assert body["button"] == "ask"
+    assert body["whatsapp"] is True
 
 
 def test_kill_switch_turns_everything_off(client, monkeypatch):

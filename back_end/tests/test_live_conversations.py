@@ -23,7 +23,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import pytest
 
 from chatbot.assistant import ChatMessage, answer_conversation
-from chatbot.safety import HEALTH_FIXED_REPLY
+from chatbot.fixed_replies import ASK_ROSA_REPLIES
+from chatbot.language import customer_language
 
 HAS_API_KEY = bool(os.getenv("ANTHROPIC_API_KEY"))
 needs_real_model = pytest.mark.skipif(not HAS_API_KEY, reason="ANTHROPIC_API_KEY is not set")
@@ -112,6 +113,10 @@ HEALTH_CONVERSATIONS = [
 ]
 
 
+def customer_texts_of(history):
+    return [message.content for message in history if message.role == "user"]
+
+
 @pytest.mark.parametrize("customer_messages", HEALTH_CONVERSATIONS)
 def test_health_questions_always_get_the_fixed_whatsapp_reply(customer_messages):
     def model_must_not_be_called(instructions, messages):
@@ -120,7 +125,9 @@ def test_health_questions_always_get_the_fixed_whatsapp_reply(customer_messages)
     history = [ChatMessage("user", text) for text in customer_messages]
     answer = answer_conversation(history, model_must_not_be_called, lambda: [])
 
-    assert answer.reply == HEALTH_FIXED_REPLY
+    expected_language = customer_language([text for text in customer_texts_of(history)])
+    assert answer.reply == ASK_ROSA_REPLIES[expected_language]
+    assert answer.button == "ask"
     assert answer.show_whatsapp_button is True
 
 
@@ -213,3 +220,38 @@ def test_outside_opening_hours_bot_says_so_and_does_not_collect_a_booking(real_p
     assert claims_schedule_is_free(answer.reply) is False, f"claims a free time: {answer.reply}"
     assert any(word in reply for word in ["closed", "gesloten", "outside", "buiten", "18:00"]), answer.reply
     assert answer.booking is None
+
+
+# ------------------------------------------------------------------ personal requests: exact sentence, no model call
+PERSONAL_CONVERSATIONS = [
+    (["I am Moroccan, I only want a woman to do it for me"], "en"),
+    (["Ik ben Marokkaans, ik wil alleen een vrouw die het voor mij doet"], "nl"),
+    (["Can only a female technician do my nails?"], "en"),
+    (["Ik wil liever een vrouwelijke medewerker"], "nl"),
+]
+
+
+@pytest.mark.parametrize("customer_messages, language", PERSONAL_CONVERSATIONS)
+def test_personal_requests_get_the_exact_ask_sentence_in_one_language(customer_messages, language):
+    def model_must_not_be_called(instructions, messages):
+        raise AssertionError("personal request reached the model")
+
+    history = [ChatMessage("user", text) for text in customer_messages]
+    answer = answer_conversation(history, model_must_not_be_called, lambda: [])
+
+    assert answer.reply == ASK_ROSA_REPLIES[language]
+    assert answer.button == "ask"
+    assert answer.show_whatsapp_button is True
+
+
+@needs_real_model
+@pytest.mark.parametrize("question, language", [
+    ("Can you recommend a good restaurant nearby?", "en"),
+    ("Kunnen jullie ook mijn haar knippen?", "nl"),
+    ("Do you do eyelash extensions?", "en"),
+    ("Wat vind je van het weer vandaag?", "nl"),
+])
+def test_out_of_scope_questions_get_the_exact_sentence_from_the_real_model_run(real_pipeline, question, language):
+    answer = run_conversation(real_pipeline, [question])
+    assert answer.reply == ASK_ROSA_REPLIES[language], answer.reply
+    assert answer.button == "ask"

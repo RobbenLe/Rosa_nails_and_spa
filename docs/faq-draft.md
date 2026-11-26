@@ -13,7 +13,7 @@ Prices, services and durations are NOT here: the bot reads them live from the pr
 | 7 | How can I pay? | You can pay with cash or PIN (debit card). We prefer cash. | Je kunt contant of met PIN betalen. Wij hebben een voorkeur voor contant. |
 | 8 | Who will do my nails? | Rosa and her team. Rosa has 10 years of experience. | Rosa en haar team. Rosa heeft 10 jaar ervaring. |
 | 9 | Do you do nail art? | Yes, nail art is one of our services. Ask on WhatsApp for your design idea. | Ja, nail art hoort bij onze diensten. Vraag via WhatsApp naar jouw ontwerp. |
-| 10 | Allergy, sensitive skin, pregnancy, medication, nail problems (FIXED reply) | I can't give advice on this. Please message Rosa on WhatsApp so she can answer you directly. [WhatsApp button] | Hier kan ik geen advies over geven. Stuur Rosa een WhatsApp-bericht, dan antwoordt zij je persoonlijk. [WhatsApp-knop] |
+| 10 | Anything the bot may not answer itself: allergy, sensitive skin, pregnancy, medication, nail problems, choice of technician, personal details, strange questions, errors (FIXED reply, one language, never repeats personal details) | Rosa can help you with that personally. Tap "Ask on WhatsApp" and send her a message, and she'll reply as soon as she can. [Ask on WhatsApp button] | Daar helpt Rosa je graag persoonlijk mee. Tik op "Vraag via WhatsApp" en stuur haar een bericht, dan antwoordt ze zo snel mogelijk. [Vraag via WhatsApp-knop] |
 
 ## Privacy line shown in the widget
 EN: "I'm a virtual assistant. Chats are not saved by us, but your messages are processed by an AI service (Anthropic). Please don't share health or sensitive details."

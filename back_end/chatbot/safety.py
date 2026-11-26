@@ -1,15 +1,19 @@
-"""Health-question safety filter.
+"""Safety filters that run BEFORE the AI model is called.
 
 PROBLEM THIS FILE SOLVES
-Customers sometimes ask about allergies, sensitive skin, pregnancy, medication or
-nail/skin problems. The bot must NOT give advice on these. Only Rosa may answer.
+Some customer messages are not for the bot to answer, only for Rosa:
+  1. health: allergies, sensitive skin, pregnancy, medication, nail/skin problems
+  2. personal requests: for example "I only want a woman to do my nails"
+  3. personal details: origin, nationality, religion and similar
 
-This is plain code, not the AI model, on purpose: the filter runs BEFORE the model
-is called, so a clever message cannot talk the bot out of it, and we can test it
-to be 100% reliable on the words listed below.
+This is plain code, not the AI model, on purpose: a clever message cannot talk plain
+code out of it, and we can test it to be 100% reliable on the words listed below.
+When a filter matches, the caller shows the fixed "Rosa can help you personally" answer
+and the model is never called. The bot never repeats or comments on such details.
 
-If any customer message in the recent conversation contains one of these words,
-the answer is the fixed message at the bottom of this file and the model is never called.
+HONEST LIMIT: these are word lists. Unusual wording that is not on the list passes this
+filter; the instructions given to the model are the second layer, and a code check on the
+model's reply is the third.
 """
 
 import re
@@ -91,10 +95,68 @@ def any_message_mentions_health_topic(customer_messages: list[str]) -> bool:
     return False
 
 
-# One message in both languages, so we never have to guess which language the customer speaks.
-HEALTH_FIXED_REPLY = (
-    "I can't give advice on allergies, skin, pregnancy, medication or nail health. "
-    "Please message Rosa on WhatsApp so she can answer you personally.\n\n"
-    "Hier kan ik geen advies over geven (allergie, huid, zwangerschap, medicijnen of nagelgezondheid). "
-    "Stuur Rosa een WhatsApp-bericht, dan antwoordt zij je persoonlijk."
-)
+# ----------------------------------------------------------------------------------------
+# Personal details (origin, nationality, religion and similar). Whole words, after normalise_text().
+PERSONAL_IDENTITY_WORDS = [
+    # religion
+    "muslim", "muslims", "moslim", "moslims", "islam", "islamic", "islamitisch", "christian", "christelijk",
+    "jewish", "joods", "hindu", "hindoe", "buddhist", "boeddhist", "catholic", "katholiek", "atheist",
+    "sikh", "halal", "hijab", "headscarf", "hoofddoek", "niqab", "religion", "religious", "religie",
+    "religieus", "geloof", "gelovig",
+    # origin and nationality
+    "moroccan", "marokkaan", "marokkaans", "marokkaanse", "morocco", "marokko", "turkish", "turks", "turkse",
+    "turkey", "turkije", "surinamese", "surinaams", "surinaamse", "ukrainian", "oekraiens", "syrian",
+    "syrisch", "eritrean", "afghan", "iranian", "iraqi", "indian", "pakistani", "chinese", "vietnamese",
+    "indonesian", "indonesisch", "african", "nationality", "nationaliteit", "origin", "afkomst",
+    "ethnicity", "immigrant", "refugee", "vluchteling", "asylum", "asiel",
+    # other personal characteristics
+    "gay", "lesbian", "transgender", "disabled", "gehandicapt", "handicap", "wheelchair", "rolstoel",
+]
+
+# A request about WHO does the nails: all three kinds of word must be in the same message.
+GENDER_WORDS = [
+    "man", "men", "male", "woman", "women", "female", "lady", "ladies", "girl", "girls", "guy", "guys",
+    "boy", "vrouw", "vrouwen", "vrouwelijk", "vrouwelijke", "dame", "dames", "meisje", "meisjes",
+    "mannelijk", "mannelijke", "mannen", "jongen",
+]
+PREFERENCE_WORDS = [
+    "only", "prefer", "rather", "want", "wants", "wish", "must", "need", "require", "insist",
+    "liever", "alleen", "wil", "wilt", "wens", "moet", "graag", "voorkeur", "uitsluitend",
+]
+WHO_DOES_IT_WORDS = [
+    "do", "does", "doing", "done", "doe", "doet", "doen", "technician", "technicians", "therapist",
+    "specialist", "stylist", "medewerker", "medewerkster", "behandelaar", "nagelstylist", "iemand",
+    "someone", "person", "persoon", "staff", "employee", "handle", "treat", "behandelen", "behandeld",
+    "work", "werkt", "werken", "help", "helpen",
+]
+
+
+def build_whole_word_pattern(words: list[str]) -> re.Pattern:
+    escaped_words = [re.escape(word) for word in words]
+    return re.compile(r"\b(?:" + "|".join(escaped_words) + r")\b")
+
+
+PERSONAL_IDENTITY_PATTERN = build_whole_word_pattern(PERSONAL_IDENTITY_WORDS)
+GENDER_PATTERN = build_whole_word_pattern(GENDER_WORDS)
+PREFERENCE_PATTERN = build_whole_word_pattern(PREFERENCE_WORDS)
+WHO_DOES_IT_PATTERN = build_whole_word_pattern(WHO_DOES_IT_WORDS)
+
+
+def mentions_personal_identity(text: str) -> bool:
+    """True if the text mentions origin, nationality, religion or a similar personal detail."""
+    return PERSONAL_IDENTITY_PATTERN.search(normalise_text(text)) is not None
+
+
+def asks_for_technician_by_gender(customer_message: str) -> bool:
+    """True for requests like 'I only want a woman to do it' or 'ik wil alleen een vrouw die het doet'."""
+    normalised_message = normalise_text(customer_message)
+    return (
+        GENDER_PATTERN.search(normalised_message) is not None
+        and PREFERENCE_PATTERN.search(normalised_message) is not None
+        and WHO_DOES_IT_PATTERN.search(normalised_message) is not None
+    )
+
+
+def is_personal_request(customer_message: str) -> bool:
+    """A personal request or personal detail: only Rosa answers these."""
+    return mentions_personal_identity(customer_message) or asks_for_technician_by_gender(customer_message)
