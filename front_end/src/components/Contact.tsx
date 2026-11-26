@@ -46,8 +46,7 @@ export default function Contact({ salon }: ContactProps) {
                         <div className="mt-8 flex flex-wrap gap-4">
                             <a
                                 href={telHref}
-                                // Pink only on wide screens; below 1024px the bottom bar has the one pink button.
-                                className="rounded-full border border-ink/30 px-7 py-3 font-body text-sm uppercase tracking-[0.15em] transition hover:border-ink/60 lg:border-transparent lg:bg-coral lg:hover:opacity-80"
+                                className="rounded-full border border-ink/30 px-7 py-3 font-body text-sm uppercase tracking-[0.15em] transition hover:border-ink/60"
                             >
                                 Call {salon.phone}
                             </a>

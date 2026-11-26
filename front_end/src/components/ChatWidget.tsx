@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
+import { ChatIcon } from "./icons";
 import {
     ChatTooManyMessagesError,
     sendChat,
@@ -228,9 +229,11 @@ export default function ChatWidget({ whatsapp, isEnabled, isOpen, onOpen, onClos
                 <button
                     type="button"
                     onClick={onOpen}
-                    className="fixed right-6 bottom-6 z-50 hidden min-h-12 items-center rounded-full bg-ink px-6 font-body text-sm uppercase tracking-[0.15em] text-cream shadow-lg transition hover:opacity-85 lg:flex"
+                    aria-label={text.open}
+                    className="fixed right-6 bottom-6 z-50 hidden min-h-12 items-center gap-2 rounded-full bg-ink px-5 font-body text-sm uppercase tracking-[0.12em] text-cream shadow-lg transition hover:opacity-85 lg:flex"
                 >
-                    {text.open}
+                    <ChatIcon />
+                    Chat
                 </button>
             ) : (
                 <section
@@ -304,7 +307,8 @@ export default function ChatWidget({ whatsapp, isEnabled, isOpen, onOpen, onClos
                                         href={buildWhatsAppLink(whatsapp, language, message.booking)}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="mt-2 flex min-h-11 w-fit items-center rounded-full bg-coral px-5 font-body text-xs uppercase tracking-[0.15em]"
+                                        // Pink on phones (the chat covers the screen, so it is the only pink button). On wide screens the Navbar keeps the one pink button.
+                                        className="mt-2 flex min-h-11 w-fit items-center rounded-full bg-coral px-5 font-body text-xs uppercase tracking-[0.15em] lg:bg-ink lg:text-cream"
                                     >
                                         {text.bookViaWhatsApp}
                                     </a>
