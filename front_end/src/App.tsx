@@ -24,7 +24,8 @@ const HERO_PHOTO_IDS = ["set-05", "set-08"];
 function App() {
     const [reviewData, setReviewData] = useState<ReviewsResponse | null>(null);
     const [services, setServices] = useState(fallbackServices);
-    const [isChatEnabled, setIsChatEnabled] = useState(false);
+    // null = the server has not answered yet. The bottom bar keeps room for the Assistant button meanwhile.
+    const [isChatEnabled, setIsChatEnabled] = useState<boolean | null>(null);
     const [isChatOpen, setIsChatOpen] = useState(false);
 
     useEffect(() => {
@@ -98,7 +99,7 @@ function App() {
 
             <ChatWidget
                 whatsapp={salon.whatsapp}
-                isEnabled={isChatEnabled}
+                isEnabled={isChatEnabled === true}
                 isOpen={isChatOpen}
                 onOpen={() => setIsChatOpen(true)}
                 onClose={() => setIsChatOpen(false)}

@@ -3,7 +3,7 @@ import { ChatIcon, PhoneIcon } from "./icons";
 interface MobileActionBarProps {
     phone: string;
     whatsapp: string;
-    isChatEnabled: boolean;        // false when the chat kill switch is off: the Chat button disappears
+    isChatEnabled: boolean | null; // null = not known yet (room is kept); false = kill switch off: the button disappears
     onOpenChat: () => void;
 }
 
@@ -19,18 +19,28 @@ export default function MobileActionBar({ phone, whatsapp, isChatEnabled, onOpen
     const telHref = `tel:${phone.replace(/\s+/g, "")}`;
     const waHref = `https://wa.me/${whatsapp.replace(/\D/g, "")}`;
     // The Assistant label is the longest, so its column is wider; this keeps every label on one line at 360px.
-    const columnClass = isChatEnabled ? "grid-cols-[1.5fr_1fr_1.3fr]" : "grid-cols-2";
+    // While we do not know yet (null) the Assistant slot is kept, so the bar does not jump when the answer arrives.
+    const showAssistantSlot = isChatEnabled !== false;
+    const columnClass = showAssistantSlot ? "grid-cols-[1.5fr_1fr_1.3fr]" : "grid-cols-2";
     const assistantLabel = navigator.language?.toLowerCase().startsWith("nl") ? "Assistent" : "Assistant";
 
     return (
         <div
             className={`fixed inset-x-0 bottom-0 z-40 grid ${columnClass} gap-2 border-t border-ink/10 bg-cream/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden`}
         >
-            {isChatEnabled ? (
+            {isChatEnabled === true ? (
                 <button type="button" onClick={onOpenChat} className={quietButton}>
                     <ChatIcon />
                     {assistantLabel}
                 </button>
+            ) : null}
+
+            {isChatEnabled === null ? (
+                // Invisible stand-in with the same size: nobody can see or tap it.
+                <span aria-hidden className={`${quietButton} invisible`}>
+                    <ChatIcon />
+                    {assistantLabel}
+                </span>
             ) : null}
 
             <a href={telHref} className={quietButton}>
