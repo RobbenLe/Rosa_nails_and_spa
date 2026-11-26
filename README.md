@@ -292,9 +292,6 @@ against the real model.
   officially needs Pro ($20/month) or a move to a host such as Netlify.
 - **Custom domain:** the site uses `rosa-nails-and-spa.vercel.app`. Buying a
   domain (e.g. a `.nl`) is recommended before printing the link anywhere.
-- **Street name:** the website says *Hofwickstraat 2*, Google says
-  *Hofwijckstraat 2* — fix in [salon.ts](front_end/src/data/salon.ts) and
-  [index.html](front_end/index.html).
 - **Online booking is unfinished:** [core/availibility.py](back_end/core/availibility.py)
   has typos (`data` → `date`, `sqlachemy` → `sqlalchemy`, `display_name` →
   `display_order`) and isn't connected to the API yet.

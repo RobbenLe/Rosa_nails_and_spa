@@ -4,7 +4,7 @@ Prices, services and durations are NOT here: the bot reads them live from the pr
 
 | # | Question | English answer | Nederlands antwoord |
 |---|---|---|---|
-| 1 | Where are you? | Rosa Nails & Spa, Hofwickstraat 2, 1055 GE Amsterdam (West). | Rosa Nails & Spa, Hofwickstraat 2, 1055 GE Amsterdam (West). |
+| 1 | Where are you? | Rosa Nails & Spa, Hofwijckstraat 2, 1055 GE Amsterdam (West). | Rosa Nails & Spa, Hofwijckstraat 2, 1055 GE Amsterdam (West). |
 | 2 | Opening hours? | Monday to Saturday 10:00–18:00, closed on Sunday. | Maandag t/m zaterdag 10:00–18:00, zondag gesloten. |
 | 3 | How do I book? | Send us a message on WhatsApp (+31 6 33 42 67 98) or call. Rosa confirms your appointment personally. | Stuur ons een bericht via WhatsApp (+31 6 33 42 67 98) of bel. Rosa bevestigt je afspraak zelf. |
 | 4 | Do you take walk-ins? | Appointments are preferred. Message us on WhatsApp to see if there is space. | Een afspraak heeft de voorkeur. Stuur ons een WhatsApp-bericht om te kijken of er plek is. |

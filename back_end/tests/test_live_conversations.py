@@ -89,7 +89,7 @@ def test_price_answers_are_correct(real_pipeline, question, service_name, varian
     ("Are you open on Sunday?", ["closed"]),
     ("Zijn jullie op zondag open?", ["gesloten"]),
     ("What time do you close on Saturday?", ["18:00"]),
-    ("Waar is de salon?", ["Hofwickstraat"]),
+    ("Waar is de salon?", ["Hofwijckstraat"]),
     ("how can I pay?", ["cash"]),
     ("Kan ik met pin betalen?", ["PIN"]),
 ])

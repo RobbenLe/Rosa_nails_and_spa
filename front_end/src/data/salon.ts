@@ -22,7 +22,7 @@ export const salon: Salon = {
     tagline: 'Boutique nail care in the heart of Amsterdam — Manicures, Pedicure, Gel, Biab, Acrylic and Nail Art by appointment.',
     phone: '+31 6 33 42 67 98',
     whatsapp: '+31 6 33 42 67 98',
-    address: 'Hofwickstraat 2',
+    address: 'Hofwijckstraat 2',
     city: '1055 GE Amsterdam',
     about: [
         "Welcome to Rosa Nails & Spa, our cozy family‑run studio in Amsterdam West. Established in 2023, we’ve been growing ever since thanks to Rosa’s 10 years of experience and her passion for creating beautiful, healthy nails.",

@@ -12,7 +12,7 @@ If Rosa changes her hours or phone number, change BOTH places.
 import config
 
 SALON_NAME = "Rosa Nails & Spa"
-SALON_ADDRESS = "Hofwickstraat 2"
+SALON_ADDRESS = "Hofwijckstraat 2"
 SALON_CITY = "1055 GE Amsterdam"
 SALON_PHONE_DISPLAY = "+31 6 33 42 67 98"
 
