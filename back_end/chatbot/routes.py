@@ -22,6 +22,14 @@ from chatbot.rate_limit import RateLimiter
 
 logger = logging.getLogger("chatbot")
 
+# Python's default logging hides INFO lines. This makes the outcome lines visible in the Vercel logs.
+if not logger.handlers:
+    log_handler = logging.StreamHandler()
+    log_handler.setFormatter(logging.Formatter("%(levelname)s %(name)s %(message)s"))
+    logger.addHandler(log_handler)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+
 router = APIRouter()
 rate_limiter = RateLimiter()
 
@@ -72,8 +80,8 @@ def chat(body: ChatRequest, request: Request):
     # Step 4: answer
     answer = answer_conversation(messages, call_anthropic_model, load_price_list)
 
-    # Step 5: log the outcome type only, never the text
-    logger.info("chat outcome=%s", answer.outcome)
+    # Step 5: log the outcome type and the reason code only, never any customer or reply text
+    logger.info("chat outcome=%s language=%s reason=%s", answer.outcome, answer.language, answer.reason or "-")
 
     return build_response(answer)
 

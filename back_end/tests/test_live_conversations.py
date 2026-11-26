@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import pytest
 
 from chatbot.assistant import ChatMessage, answer_conversation
-from chatbot.fixed_replies import ASK_ROSA_REPLIES
+from chatbot.fixed_replies import ASK_ROSA_REPLIES, BOOKING_REPLIES
 from chatbot.language import customer_language
 
 HAS_API_KEY = bool(os.getenv("ANTHROPIC_API_KEY"))
@@ -255,3 +255,22 @@ def test_out_of_scope_questions_get_the_exact_sentence_from_the_real_model_run(r
     answer = run_conversation(real_pipeline, [question])
     assert answer.reply == ASK_ROSA_REPLIES[language], answer.reply
     assert answer.button == "ask"
+
+
+# ------------------------------------------------------------------ booking in ONE message (found on Preview: fell back to "ask Rosa")
+ONE_MESSAGE_BOOKINGS = [
+    ("I'd like BIAB colour on Saturday 28/11 at 10am, my name is Anna", "en"),
+    ("Ik wil zaterdag om 10 uur gellak, ik heet Anna", "nl"),
+]
+
+
+@needs_real_model
+@pytest.mark.parametrize("customer_text, language", ONE_MESSAGE_BOOKINGS)
+def test_booking_in_one_message_gets_the_appointment_sentence(real_pipeline, customer_text, language):
+    answer = run_conversation(real_pipeline, [customer_text])
+
+    # the message shows WHY if this fails: outcome and reason are codes, never customer text
+    assert answer.outcome == "booking", f"outcome={answer.outcome} reason={answer.reason} reply={answer.reply}"
+    assert answer.reply == BOOKING_REPLIES[language]
+    assert answer.button == "book"
+    assert answer.booking is not None and "anna" in answer.booking["name"].lower()

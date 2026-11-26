@@ -83,7 +83,7 @@ def test_model_call_cap_per_hour():
 
 # ------------------------------------------------------------------ schedule claims
 from chatbot.answer_check import claims_schedule_is_free
-from chatbot.fixed_replies import ASK_ROSA_REPLIES, SCHEDULE_REPLIES
+from chatbot.fixed_replies import ASK_ROSA_REPLIES, BOOKING_REPLIES
 
 
 @pytest.mark.parametrize("reply", [
@@ -126,7 +126,7 @@ def test_replies_that_claim_a_free_or_booked_time_are_caught(reply):
     "Waar kan ik betalen? Je kunt contant of met PIN betalen.",
     "Rosa confirms your appointment personally on WhatsApp.",
     "A gel manicure is €25 and takes 60 minutes.",
-    *SCHEDULE_REPLIES.values(),
+    *BOOKING_REPLIES.values(),
     *ASK_ROSA_REPLIES.values(),
 ])
 def test_normal_replies_are_not_flagged_as_schedule_claims(reply):
@@ -141,9 +141,15 @@ def test_approved_faq_answers_are_not_flagged_as_schedule_claims():
         assert claims_schedule_is_free(dutch_answer) is False, dutch_answer
 
 
-def test_standard_sentence_tells_the_customer_to_send_the_message_themselves():
-    assert SCHEDULE_REPLIES["en"] == 'Tap "Book via WhatsApp" and send the message. Rosa will check her schedule and reply to confirm.'
-    assert SCHEDULE_REPLIES["nl"] == 'Tik op "Boek via WhatsApp" en verstuur het bericht. Rosa kijkt in haar agenda en laat je weten of het lukt.'
+def test_booking_sentences_are_exactly_the_approved_text():
+    assert BOOKING_REPLIES["en"] == (
+        'Rosa manages all appointments personally. Tap "Book via WhatsApp" and send her a message, '
+        "and she'll check her schedule and find a time that suits you."
+    )
+    assert BOOKING_REPLIES["nl"] == (
+        'Rosa plant alle afspraken zelf in. Tik op "Boek via WhatsApp" en stuur haar een bericht, '
+        "dan kijkt ze in haar agenda en zoekt ze een tijd die jou uitkomt."
+    )
 
 
 def test_ask_rosa_sentences_are_exactly_the_approved_text():

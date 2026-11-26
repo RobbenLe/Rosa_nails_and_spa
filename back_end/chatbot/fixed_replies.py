@@ -1,8 +1,9 @@
 """The fixed sentences the bot says word for word (approved by the owner).
 
 PROBLEM THIS FILE SOLVES
-When a question is outside what the bot may answer, the model must not improvise.
-The text below is shown exactly as written, in ONE language, never edited by the model.
+When a question is outside what the bot may answer, or a customer wants an appointment,
+the model must not improvise. The texts below are shown exactly as written, in ONE language,
+and the model never writes them (so a quote character in them can never break the model's answer format).
 
 Two kinds of WhatsApp button go with these texts (the website chooses the button label):
   "ask"  -> "Ask on WhatsApp" / "Vraag via WhatsApp"   (a question for Rosa)
@@ -21,8 +22,12 @@ ASK_ROSA_REPLIES = {
           "dan antwoordt ze zo snel mogelijk.",
 }
 
-# Used when the model's reply sounded like a time slot is free or booked.
-SCHEDULE_REPLIES = {
-    "en": 'Tap "Book via WhatsApp" and send the message. Rosa will check her schedule and reply to confirm.',
-    "nl": 'Tik op "Boek via WhatsApp" en verstuur het bericht. Rosa kijkt in haar agenda en laat je weten of het lukt.',
+# (a) Appointment requests. The bot does not know Rosa's schedule, so it never says a time is free.
+# Shown when the customer has given service, time and name, and also when the model's own reply
+# sounded like a time slot is free or booked.
+BOOKING_REPLIES = {
+    "en": 'Rosa manages all appointments personally. Tap "Book via WhatsApp" and send her a message, '
+          "and she'll check her schedule and find a time that suits you.",
+    "nl": 'Rosa plant alle afspraken zelf in. Tik op "Boek via WhatsApp" en stuur haar een bericht, '
+          "dan kijkt ze in haar agenda en zoekt ze een tijd die jou uitkomt.",
 }
